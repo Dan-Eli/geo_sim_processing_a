@@ -2,7 +2,7 @@
 # -=- encoding: utf-8 -=-
 
 """
-General classes and utilities needed for the GENeralization MEta ALgorithm (GENMTEAL) tool
+General classes and utilities needed for the GENeralization MEta ALgorithm (GENMTEAL) tool.
 
 """
 
@@ -935,9 +935,6 @@ class ChordalAxis2(object):
             triangle_sc = LineStringSc(triangle.coords)
             triangle_sc._sc_processed = False
             lst_triangles_sc.append(triangle_sc)
-
-
-
 
 class ChordalAxis(object):
     """This class is creating  a skeleton and identify bottleneck based on the Chordal Axis Transform CAT
