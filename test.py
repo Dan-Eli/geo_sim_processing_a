@@ -4,7 +4,7 @@ from shapely.strtree import STRtree
 lines = []
 for i in range(10):
     line = LineString([(0,0),(i,i)])
-    line.__att = i+4
+    line.__att = i+14
     lines.append(line)
 
 tree = STRtree(lines)
