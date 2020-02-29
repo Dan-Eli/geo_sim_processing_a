@@ -2,7 +2,7 @@
 # -=- encoding: utf-8 -=-
 
 """
-General classes and utilities needed for the GENeralization MEta ALgorithm (GENMTEAL) tool.
+General classes and utilities needed for the GeoSim.
 
 """
 
@@ -920,21 +920,74 @@ class SpatialContainerSTRtree(object):
 
 class ChordalAxis2(object):
 
-    def __init__(self, lst_triangles, search_tolerance=GenUtil.ZERO):
+    def __init__(self, triangles, search_tolerance=GenUtil.ZERO):
 
+        self.search_tolerance = search_tolerance
+
+        self.triangles = self._build_rtree(triangles)
+
+        self._build_polygons()
+
+
+    def _build_rtree(self, triangles):
+        """Validate triangle geometry"""
+
+        if len(triangles >= 1):
+            triangle_type = triangles[0].geom_type
+        triangle_valid = True
+        for i,triangle in enumerate(triangles):
+
+            # Triangle are LineString
+            if triangle.geom_type == GenUtil.LINE_STRING:
+                coords = list(triangle.coords)
+                # Check number of vertice
+                if len(coords) != 4:
+                    print ("Triangle does not contain exactly 4 vertices: {0}".format(coords[0]))
+                    triangle_valid = False
+                # Check if all geometry are identical
+                if triangle.geom_type != triangle_type:
+                    print("Triangle has mixed geometry type: {0}".format(coords[0]))
+                    triangle_valid = False
+                # Check if the line is closed
+                if GenUtil.distance(coords[0], coords[3]) >= self.search_tolerance:
+                    print("Triangle is not closed: {0}".format(coords[0]))
+                    triangle_valid = False
+
+            # Triangle are polygons
+            if triangle.geom_type == GenUtil.POLYGON:
+                coords = list(polygon.exterior.coords)
+                # Validate trianglehas 4 vertice
+                if len(coords) != 4:
+                    print ("Triangle does not contain exactly 4 vertices: {0}".format(coords[0]))
+                    triangle_valid = False
+                    # Check if all geometry are identical
+                if triangle.geom_type != triangle_type:
+                    print("Triangle has mixed geometry type: {0}".format(coords[0]))
+                    triangle_valid = False
+
+                # Transform the polygon into a LineString
+                if triangle_valid:
+                    triangles[i] = LineString(coords)
+
+            if triangle_valid:
+                # Load the triangles in the rtree
+                self.rtree_triangles = STRtree(triangles)
+            else:
+                raise GeoSimException ("Error in triangulation... cannot process them...")
+
+            return triangles
+
+
+
+<<<<<<< HEAD
         self.coco123
         self._load_triangles(lst_triangles)
+=======
+>>>>>>> 14398add2cfec57a12da3f22e40be42f69e697c2
 
-        self._build_triangle_clusters()
 
 
-    def _load_triangles(self, lst_triangles):
 
-        lst_triangles_sc = []
-        for triangle in lst_triangles:
-            triangle_sc = LineStringSc(triangle.coords)
-            triangle_sc._sc_processed = False
-            lst_triangles_sc.append(triangle_sc)
 
 class ChordalAxis(object):
     """This class is creating  a skeleton and identify bottleneck based on the Chordal Axis Transform CAT
