@@ -979,12 +979,7 @@ class ChordalAxis2(object):
 
 
 
-<<<<<<< HEAD
-        self.coco123
-        self._load_triangles(lst_triangles)
-=======
->>>>>>> 14398add2cfec57a12da3f22e40be42f69e697c2
-
+coco
 
 
 
