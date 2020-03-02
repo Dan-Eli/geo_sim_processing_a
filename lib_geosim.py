@@ -977,11 +977,20 @@ class ChordalAxis2(object):
 
             return triangles
 
+    def build_clusters(self, lst_triangles):
 
+        dict_triangles = {}
+        for id,triangle in enumerate(lst_triangles):
+            triangle._id = id
+            dict_triangles[id] = triangle
 
-coco
+        self.rtree_triangles = STRtree(lst_triangles)
+        clusters = []
 
-
+        while len(dict_triangle) >= 1:
+            seed_triangle = next(iter(dict.values()))
+            cluster = []
+            find_adjacent_triangles(seed_triangle, cluster)
 
 
 class ChordalAxis(object):
