@@ -987,10 +987,53 @@ class ChordalAxis2(object):
         self.rtree_triangles = STRtree(lst_triangles)
         clusters = []
 
-        while len(dict_triangle) >= 1:
+        while len(dict_triangles) >= 1:
             seed_triangle = next(iter(dict.values()))
             cluster = []
-            find_adjacent_triangles(seed_triangle, cluster)
+            build_one_cluster(seed_triangle, cluster)
+            clusters.append(cluster)
+
+
+
+    def find_adjacent_triangle(self, seed_triangle, mid_point_side):
+
+        triangles = self.rtre_triangles.query(mid_point_side.buffer(self.tolerance*100.))
+
+        min_distance = sys.max_float
+        target_triangle = None
+        for triangle in triangles:
+            if triangle._id != seed_triangle._id:
+                distance = mid_point_side.distance(triangle)
+                if distance < min_distance:
+                    distance = min_distance
+                    target_triangle = triangle
+
+
+
+    def build_one_cluster(self, dict_triangles, seed_triangle, cluster):
+
+        # Add the seed tiangle
+        cluster.append(seed_triangle)
+
+        # Remove from the dictionary
+        del dict_triangles[seed_triangle._id]
+
+        # Find the mid point of each side of the triangle
+        coords = list(seed_triangle.coords)
+        mid_pnt_side_0 = LineString((coords(0), coords(1))).interpolate(0.5, normalized=True)
+        mid_pnt_side_1 = LineString((coords(1), coords(2))).interpolate(0.5, normalized=True)
+        mid_pnt_side_2 = LineString((coords(2), coords(0))).interpolate(0.5, normalized=True)
+
+        for mid_point_side in (mid_pnt_side_0, mid_pnt_side_1, mid_pnt_side_3):
+        adjacent_side_0 = find_adjacent_triangle(seed_triangle, mid_point_side)
+        if adjacent_side_0 is not None:
+            if adjacent_side_0 in dict_triangles:
+                self.build_one_cluster (dict_triangles, adjacent_side_0, cluster)
+            else:
+                # No triangle to process
+                pass
+
+
 
 
 class ChordalAxis(object):
