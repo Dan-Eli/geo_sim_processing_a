@@ -9,18 +9,20 @@ General classes and utilities needed for the GeoSim.
 import math
 from shapely.geometry import Point, LineString, LinearRing, Polygon
 from shapely.ops import linemerge
+from shapely.strtree import STRtree
 import fiona
 
 try:
     from rtree import Rtree
+
     lib_Rtree = True
-except :
+except:
     # If Rtree is not installed
     lib_Rtree = False
     from shapely.strtree import STRtree
 
-class LineStringSc(LineString):
 
+class LineStringSc(LineString):
     """LineString specialization to be included in the SpatialContainer"""
 
     def __init__(self, coords):
@@ -37,13 +39,12 @@ class LineStringSc(LineString):
         # Update the coord attribute in the parent class
         LineString.coords.__set__(self, coords)
 
-        if self._sc_scontainer != None:    # Is the feature is a spatial container
+        if self._sc_scontainer != None:  # Is the feature is a spatial container
             # The coordinate has changed so update the bounding box in the spatial container
             self._sc_scontainer.update_spatial_index(self)
 
 
 class PointSc(Point):
-
     """LineString specialization to be included in the SpatialContainer"""
 
     def __init__(self, coords):
@@ -65,7 +66,6 @@ class PointSc(Point):
 
 
 class PolygonSc(Polygon):
-
     """Polygon specialization to be included in the SpatialContainer"""
 
     def __init__(self, exterior, interiors=None):
@@ -83,7 +83,7 @@ class PolygonSc(Polygon):
 
     @exterior.setter
     def exterior(self, exterior):
-        raise GeoSimException ("Cannot update the exterior coordinates of a polygon")
+        raise GeoSimException("Cannot update the exterior coordinates of a polygon")
 
     @interiors.setter
     def interiors(self, interiors):
@@ -126,7 +126,7 @@ class GenUtil:
         return math.sqrt((p2[0] - p1[0]) ** 2.0 + (p2[1] - p1[1]) ** 2.0)
 
     @staticmethod
-    def compute_angle (p1, p2, p3, type=DEGREE):
+    def compute_angle(p1, p2, p3, type=DEGREE):
         """
         Function to calculate angle between two vectors.
         """
@@ -191,7 +191,7 @@ class GenUtil:
 
         if orient > 0.:
             orient = 1
-        elif orient< 0.:
+        elif orient < 0.:
             orient = -1
         else:
             orient = 0
@@ -369,7 +369,7 @@ class GenUtil:
                             schema=geo_content.schemas[layer_name]) as dest:
                 out_features = []
                 for feature in (feature for feature in geo_content.out_features
-                                if feature.sb_layer_name==layer_name):
+                                if feature.sb_layer_name == layer_name):
                     # Transform the Shapely features for fiona writing
                     if feature.geom_type == GenUtil.POINT:
                         coordinates = (feature.x, feature.y)
@@ -380,7 +380,7 @@ class GenUtil:
                     elif feature.geom_type == GenUtil.POLYGON:
                         exterior = list(feature.exterior.coords)
                         interiors = [list(interior.coords) for interior in feature.interiors]
-                        coordinates = [exterior]+interiors
+                        coordinates = [exterior] + interiors
                         geo_content.out_nbr_polygons += 1
                         geo_content.out_nbr_holes += len(interiors)
 
@@ -408,8 +408,8 @@ class GenUtil:
         """
 
         line_schema = landmarks_schema = {'geometry': 'LineString',
-                                           'properties': OrderedDict([])
-                                         }
+                                          'properties': OrderedDict([])
+                                          }
 
         # Loop over each layer and write the content of the file
         for layer_name in geo_content.layer_names:
@@ -420,7 +420,7 @@ class GenUtil:
                             schema=line_schema) as dest:
                 out_features = []
                 for feature in (feature for feature in geo_content.out_features
-                                if feature.sb_layer_name==layer_name):
+                                if feature.sb_layer_name == layer_name):
                     # Transform the Shapely features for fiona writing
                     if feature.geom_type == GenUtil.POINT:
                         coordinates = (feature.x, feature.y)
@@ -431,7 +431,7 @@ class GenUtil:
                     elif feature.geom_type == GenUtil.POLYGON:
                         exterior = list(feature.exterior.coords)
                         interiors = [list(interior.coords) for interior in feature.interiors]
-                        coordinates = [exterior]+interiors
+                        coordinates = [exterior] + interiors
                         geo_content.out_nbr_polygons += 1
                         geo_content.out_nbr_holes += len(interiors)
 
@@ -480,7 +480,7 @@ class SpatialContainer(object):
         self._features = {}  # Container to hold the features
         self._bbox_features = {}  # Container to hold the bounding boxes
 
-    def adjust_bbox(self, bounds, delta = GenUtil.ZERO):
+    def adjust_bbox(self, bounds, delta=GenUtil.ZERO):
         """Adjust the bounding box by increasing by a very small delta
 
         Parameters:
@@ -637,9 +637,9 @@ class SpatialContainer(object):
         new_x_min, new_y_min, new_x_max, new_y_max = new_bbox[0], new_bbox[1], new_bbox[2], new_bbox[3]
 
         if old_x_min <= new_x_min and \
-           old_y_min <= new_y_min and \
-           old_x_max >= new_x_max and \
-           old_y_max >= new_y_max:
+                old_y_min <= new_y_min and \
+                old_x_max >= new_x_max and \
+                old_y_max >= new_y_max:
             # Nothing to do new bounding box is completely included into the old one
             pass
         else:
@@ -730,7 +730,7 @@ class SpatialContainerSTRtree(object):
         self._features = {}  # Container to hold the features
         self._bbox_features = {}  # Container to hold the bounding boxes
 
-    def adjust_bbox(self, bounds, delta = GenUtil.ZERO):
+    def adjust_bbox(self, bounds, delta=GenUtil.ZERO):
         """Adjust the bounding box by increasing by a very small delta
 
         Parameters:
@@ -787,7 +787,7 @@ class SpatialContainerSTRtree(object):
 
             # Transform the feature as its corresponding bounding box... to simulate the Rtree class
             xmin, ymin, xmax, ymax = bounds
-            tmp_feature = LineString(((xmin,ymin),(xmin,ymax),(xmax,ymax), (xmax,ymin), (xmin,ymin)))
+            tmp_feature = LineString(((xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin), (xmin, ymin)))
             tmp_feature._sc_id = feature._sc_id
             tmp_features.append(tmp_feature)
 
@@ -824,7 +824,6 @@ class SpatialContainerSTRtree(object):
         """
 
         raise GeoSimException("Cannot delete feature with shapely STRtree")
-
 
     def del_features(self, features):
         """Delete a list of features in the spatial container
@@ -864,9 +863,9 @@ class SpatialContainerSTRtree(object):
         new_x_min, new_y_min, new_x_max, new_y_max = new_bbox[0], new_bbox[1], new_bbox[2], new_bbox[3]
 
         if old_x_min <= new_x_min and \
-           old_y_min <= new_y_min and \
-           old_x_max >= new_x_max and \
-           old_y_max >= new_y_max:
+                old_y_min <= new_y_min and \
+                old_x_max >= new_x_max and \
+                old_y_max >= new_y_max:
             # Nothing to do new bounding box is completely included into the old one
             pass
         else:
@@ -918,47 +917,49 @@ class SpatialContainerSTRtree(object):
 
         return
 
+
 class ChordalAxis2(object):
 
     def __init__(self, triangles, search_tolerance=GenUtil.ZERO):
 
         self.search_tolerance = search_tolerance
 
-        self.triangles = self._build_rtree(triangles)
+        lst_valid_triangles = self._validate_triangles(triangles)
 
-        self._build_polygons()
+        self.triangle_clusters = self._build_clusters(lst_valid_triangles)
 
+        return
 
-    def _build_rtree(self, triangles):
+    def _validate_triangles(self, triangles):
         """Validate triangle geometry"""
 
-        if len(triangles >= 1):
+        if len(triangles) >= 1:
             triangle_type = triangles[0].geom_type
         triangle_valid = True
-        for i,triangle in enumerate(triangles):
+        for i, triangle in enumerate(triangles):
 
             # Triangle are LineString
             if triangle.geom_type == GenUtil.LINE_STRING:
                 coords = list(triangle.coords)
                 # Check number of vertice
                 if len(coords) != 4:
-                    print ("Triangle does not contain exactly 4 vertices: {0}".format(coords[0]))
+                    print("Triangle does not contain exactly 4 vertices: {0}".format(coords[0]))
                     triangle_valid = False
                 # Check if all geometry are identical
                 if triangle.geom_type != triangle_type:
                     print("Triangle has mixed geometry type: {0}".format(coords[0]))
                     triangle_valid = False
                 # Check if the line is closed
-                if GenUtil.distance(coords[0], coords[3]) >= self.search_tolerance:
+                if Point(coords[0]).distance(Point(coords[3])) >= self.search_tolerance:
                     print("Triangle is not closed: {0}".format(coords[0]))
                     triangle_valid = False
 
             # Triangle are polygons
             if triangle.geom_type == GenUtil.POLYGON:
-                coords = list(polygon.exterior.coords)
+                coords = list(triangle.exterior.coords)
                 # Validate trianglehas 4 vertice
                 if len(coords) != 4:
-                    print ("Triangle does not contain exactly 4 vertices: {0}".format(coords[0]))
+                    print("Triangle does not contain exactly 4 vertices: {0}".format(coords[0]))
                     triangle_valid = False
                     # Check if all geometry are identical
                 if triangle.geom_type != triangle_type:
@@ -969,18 +970,16 @@ class ChordalAxis2(object):
                 if triangle_valid:
                     triangles[i] = LineString(coords)
 
-            if triangle_valid:
-                # Load the triangles in the rtree
-                self.rtree_triangles = STRtree(triangles)
-            else:
-                raise GeoSimException ("Error in triangulation... cannot process them...")
+            if not triangle_valid:
+                # There are one or more errors in the triangles
+                raise GeoSimException("Error in the triangles... cannot process them...")
 
             return triangles
 
-    def build_clusters(self, lst_triangles):
+    def _build_clusters(self, lst_triangles):
 
         dict_triangles = {}
-        for id,triangle in enumerate(lst_triangles):
+        for id, triangle in enumerate(lst_triangles):
             triangle._id = id
             dict_triangles[id] = triangle
 
@@ -988,29 +987,40 @@ class ChordalAxis2(object):
         clusters = []
 
         while len(dict_triangles) >= 1:
-            seed_triangle = next(iter(dict.values()))
+            seed_triangle = next(iter(dict_triangles.values()))
             cluster = []
-            build_one_cluster(seed_triangle, cluster)
+            self._build_one_cluster(dict_triangles, seed_triangle, cluster)
             clusters.append(cluster)
 
+        return clusters
 
+    def _find_adjacent_triangle(self, seed_triangle, mid_point_side):
 
-    def find_adjacent_triangle(self, seed_triangle, mid_point_side):
+        # Find adjacent triagles
+        triangles = self.rtree_triangles.query(mid_point_side.buffer(self.search_tolerance * 1000.))
 
-        triangles = self.rtre_triangles.query(mid_point_side.buffer(self.tolerance*100.))
-
-        min_distance = sys.max_float
+        min_distance = self.search_tolerance
         target_triangle = None
+        nbr_near_zero = 0
         for triangle in triangles:
             if triangle._id != seed_triangle._id:
                 distance = mid_point_side.distance(triangle)
-                if distance < min_distance:
-                    distance = min_distance
-                    target_triangle = triangle
+                if distance < self.search_tolerance:
+                    nbr_near_zero += 1
+                    if distance < min_distance:
+                        min_distance = distance
+                        target_triangle = triangle
+            else:
+                # Same triangle do not process
+                pass
 
+        if nbr_near_zero >= 2:
+            xy = (mid_point_side.x, mid_point_side.y)
+            print("***Warning*** Triangles are to small: {0} Simplify them (e.g. Douglas Peucker)".format(xy))
 
+        return target_triangle
 
-    def build_one_cluster(self, dict_triangles, seed_triangle, cluster):
+    def _build_one_cluster(self, dict_triangles, seed_triangle, cluster):
 
         # Add the seed tiangle
         cluster.append(seed_triangle)
@@ -1020,20 +1030,21 @@ class ChordalAxis2(object):
 
         # Find the mid point of each side of the triangle
         coords = list(seed_triangle.coords)
-        mid_pnt_side_0 = LineString((coords(0), coords(1))).interpolate(0.5, normalized=True)
-        mid_pnt_side_1 = LineString((coords(1), coords(2))).interpolate(0.5, normalized=True)
-        mid_pnt_side_2 = LineString((coords(2), coords(0))).interpolate(0.5, normalized=True)
+        mid_pnt_side_0 = LineString([coords[0], coords[1]]).interpolate(0.5, normalized=True)
+        mid_pnt_side_1 = LineString((coords[1], coords[2])).interpolate(0.5, normalized=True)
+        mid_pnt_side_2 = LineString((coords[2], coords[0])).interpolate(0.5, normalized=True)
 
-        for mid_point_side in (mid_pnt_side_0, mid_pnt_side_1, mid_pnt_side_3):
-        adjacent_side_0 = find_adjacent_triangle(seed_triangle, mid_point_side)
-        if adjacent_side_0 is not None:
-            if adjacent_side_0 in dict_triangles:
-                self.build_one_cluster (dict_triangles, adjacent_side_0, cluster)
+        for mid_point_side in (mid_pnt_side_0, mid_pnt_side_1, mid_pnt_side_2):
+            adjacent_side = self._find_adjacent_triangle(seed_triangle, mid_point_side)
+            if adjacent_side is not None:
+                if adjacent_side._id in dict_triangles:
+                    self._build_one_cluster(dict_triangles, adjacent_side, cluster)
+                else:
+                    # triangle already processed
+                    pass
             else:
                 # No triangle to process
                 pass
-
-
 
 
 class ChordalAxis(object):
@@ -1076,14 +1087,15 @@ class ChordalAxis(object):
         """
         self.s_cont_triangles = SpatialContainer()
         self._search_tolerance = search_tolerance
-#        self._process_polygon(polygon)
+        #        self._process_polygon(polygon)
         self._load_triangles(triangles)
 
-#        _Triangle.line_segments = self.line_segments
-#        _Triangle.perimeters = self.perimeter_distance
+        #        _Triangle.line_segments = self.line_segments
+        #        _Triangle.perimeters = self.perimeter_distance
 
         self._build_skeleton()
-#        self._prune_skeleton()
+
+    #        self._prune_skeleton()
 
     def _process_polygon(self, polygon):
         """Process a polygon to create the object property line_segments and perimeter_distance
@@ -1249,8 +1261,7 @@ class ChordalAxis(object):
 
         return triangles
 
-
-    def  _remove_noise(self, center_lines, noise):
+    def _remove_noise(self, center_lines, noise):
         """remove the noise (small lines) in the skeleton
 
         Parameters:
@@ -1260,12 +1271,12 @@ class ChordalAxis(object):
             List of LineString
         """
 
-#        a = LineString(((0,0),(15,0)))
-#        b = LineString(((15,0),(30,0)))
-#        c = LineString(((30,0),(30,5)))
-#        d = LineString(((30,0),(45,0)))
-#        e = LineString(((45,0),(60,0)))
-#        center_lines = [a,b,c,d,e]
+        #        a = LineString(((0,0),(15,0)))
+        #        b = LineString(((15,0),(30,0)))
+        #        c = LineString(((30,0),(30,5)))
+        #        d = LineString(((30,0),(45,0)))
+        #        e = LineString(((45,0),(60,0)))
+        #        center_lines = [a,b,c,d,e]
 
         # Load the features in the spatial container (accelerate the search)
         s_container = SpatialContainer()
@@ -1311,7 +1322,7 @@ class ChordalAxis(object):
             if keep_line:
                 center_lines.append(line)
             else:
-                print ("Line deleted")
+                print("Line deleted")
 
         # Merge the center line
         merged_center_lines = linemerge(center_lines)
@@ -1319,7 +1330,6 @@ class ChordalAxis(object):
             center_lines = [merged_center_lines]
         else:
             center_lines = [center_line for center_line in merged_center_lines]
-
 
         return center_lines
 
@@ -1525,7 +1535,8 @@ class _Triangle(LineStringSc):
                 # Sleeve triangle skeleton added between the mid point of each chord
                 internal_side0 = internal_sides[0]
                 internal_side1 = internal_sides[1]
-                self._centre_lines.append(LineStringSc([mid_side_points[internal_side0], mid_side_points[internal_side1]]))
+                self._centre_lines.append(
+                    LineStringSc([mid_side_points[internal_side0], mid_side_points[internal_side1]]))
                 self._mid_triangle = GenUtil.mid_point(mid_side_points[internal_side0], mid_side_points[internal_side1])
 
             if nbr_adjacent == 3:
@@ -1543,8 +1554,10 @@ class _Triangle(LineStringSc):
                     left_side = (opposite_side + 1) % 3
                     right_side = (opposite_side - 1) % 3
                     self._mid_triangle = mid_side_points[opposite_side]
-                    self._centre_lines.append(LineStringSc([mid_side_points[opposite_side], mid_side_points[left_side]]))
-                    self._centre_lines.append(LineStringSc([mid_side_points[opposite_side], mid_side_points[right_side]]))
+                    self._centre_lines.append(
+                        LineStringSc([mid_side_points[opposite_side], mid_side_points[left_side]]))
+                    self._centre_lines.append(
+                        LineStringSc([mid_side_points[opposite_side], mid_side_points[right_side]]))
         else:
             # Centre line was already calculated... nothing to do
             pass
@@ -1569,7 +1582,7 @@ class _Triangle(LineStringSc):
             self._nbr_adjacent = 0
             coords = list(self.coords)
             for i in range(3):
-                tmp_line = LineString((coords[i], coords[i+1]))
+                tmp_line = LineString((coords[i], coords[i + 1]))
                 mid_point = tmp_line.interpolate(.5, normalized=True)
                 bbox = GenUtil.build_bounding_box(GenUtil.ZERO, mid_point.bounds)
                 adjacents = list(self._sc_scontainer.get_features(bounds=bbox, remove_features=[self]))
@@ -1670,8 +1683,8 @@ class _LineSegments(object):
             for j in range(nbr_coord_ring - 1):
                 p0 = lst_coords[j]
                 p1 = lst_coords[j + 1]
-                line = LineStringSc((lst_coords[j], lst_coords[j+1]))
-#                line.sb_geom_type = GenUtil.LINE_STRING
+                line = LineStringSc((lst_coords[j], lst_coords[j + 1]))
+                #                line.sb_geom_type = GenUtil.LINE_STRING
                 #                line.ma_properties[_LineSegments.ID_RING] = id_ring
                 self._s_container.add_feature(line)
 
@@ -1828,8 +1841,8 @@ class PerimeterDistance(object):
             point.sb_geom_type = GenUtil.POINT
             point.sb_id_ring = id_ring
             point.sb_id_coord = i
-#            point.ma_properties[PerimeterDistance._ID_RING] = id_ring
-#            point.ma_properties[PerimeterDistance._ID_COORD] = i
+            #            point.ma_properties[PerimeterDistance._ID_RING] = id_ring
+            #            point.ma_properties[PerimeterDistance._ID_COORD] = i
             self.s_cont_points.add_feature(point)
 
     def _init_load_cum_distance(self, lst_coords):
@@ -2008,7 +2021,7 @@ class PerimeterDistance(object):
         return extremity
 
 
-class GeoSimException (Exception):
+class GeoSimException(Exception):
     """
     This is the base exception class for genmetal algorithms
     """
@@ -2017,13 +2030,12 @@ class GeoSimException (Exception):
         Exception.__init__(self, *arguments, **keywords)
 
 
-class InternalError (GeoSimException):
+class InternalError(GeoSimException):
     """
     This exception is raised when an internal error as occurred
     """
 
     def __init__(self, *param_names):
-
         """
         Initialise an Invalid Geometry Error
 
