@@ -1030,12 +1030,26 @@ class ChordalAxis2(object):
 
         # Find the mid point of each side of the triangle
         coords = list(seed_triangle.coords)
+
+        # Calculate the mis point of each side
         mid_pnt_side_0 = LineString([coords[0], coords[1]]).interpolate(0.5, normalized=True)
         mid_pnt_side_1 = LineString((coords[1], coords[2])).interpolate(0.5, normalized=True)
         mid_pnt_side_2 = LineString((coords[2], coords[0])).interpolate(0.5, normalized=True)
 
-        for mid_point_side in (mid_pnt_side_0, mid_pnt_side_1, mid_pnt_side_2):
-            adjacent_side = self._find_adjacent_triangle(seed_triangle, mid_point_side)
+        # Fins adjacent triangle on each side
+        adjacent_side_0 = self._find_adjacent_triangle(seed_triangle, mid_pnt_side_0)
+        adjacent_side_1 = self._find_adjacent_triangle(seed_triangle, mid_pnt_side_1)
+        adjacent_side_2 = self._find_adjacent_triangle(seed_triangle, mid_pnt_side_2)
+
+        # Build the list
+        seed_triangle._sides = []
+        for adjacent_side in (adjacent_side_0, adjacent_side_1, adjacent_side_2):
+            if adjacent_side is not None:
+                seed_triangle._sides.append(1)  # There is a triangle on this side
+            else:
+                seed_triangle._sides.append(0)  # There is no triangle on this side
+
+        for adjacent_side in (adjacent_side_0, adjacent_side_1, adjacent_side_2):
             if adjacent_side is not None:
                 if adjacent_side._id in dict_triangles:
                     self._build_one_cluster(dict_triangles, adjacent_side, cluster)
@@ -1135,7 +1149,7 @@ class ChordalAxis(object):
 
         Parameters: None
 
-        Ruturn value: None
+        Return value: None
 
         """
 
