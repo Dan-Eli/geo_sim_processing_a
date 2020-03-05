@@ -1035,6 +1035,9 @@ class ChordalAxis2(object):
         mid_pnt_side_0 = LineString([coords[0], coords[1]]).interpolate(0.5, normalized=True)
         mid_pnt_side_1 = LineString((coords[1], coords[2])).interpolate(0.5, normalized=True)
         mid_pnt_side_2 = LineString((coords[2], coords[0])).interpolate(0.5, normalized=True)
+        seed_triangle._mid_pnt_side = [mid_pnt_side_0, mid_pnt_side_1, mid_pnt_side_2]
+        seed_triangle._type = sum(seed_triangle._mid_pnt_side)
+
 
         # Fins adjacent triangle on each side
         adjacent_side_0 = self._find_adjacent_triangle(seed_triangle, mid_pnt_side_0)
@@ -1059,6 +1062,57 @@ class ChordalAxis2(object):
             else:
                 # No triangle to process
                 pass
+
+    def create_centre_line(self, triangle):
+        """Calculates and extract the center line of one triangle
+
+        The center line depends of the type of triangle
+            Terminal triangle: No center line
+            Sleeve triangle: Joining the mid side of the internal side
+            Junction triangle:  If the triangle is obtuse:
+                                           - find the opposite side of the obtuse angle ()
+                                           - creates 2 lines from the opposite side to the mid point of the 2 other sides
+                                If the triangle is acute:
+                                        - calculate the baricenter
+                                        - creates 3 lines from the mid side to the baricenter
+        """
+
+
+
+        # Process each case depending on the number of internal side of the triangle
+        if triangle._type == 0:
+            # Degenerated polygon with one triangle no skeleton line added
+            pass
+
+        if triangle._type == 1:
+            # Terminal triangle add line from the extremity of the triangle up to mid opposite side
+            if triangles._sides[0] == 1:
+                coords_line = [coords[2], triangle.mid_side_pnt[0]]
+            if triangles._sides[1] == 1:
+                coords_line = [coords[0], triangle.mid_side_pnt[1]]mid_side_points[1]]
+            if triangles._sides[2] == 1:
+                coords_line = [coords[1], triangle.mid_side_pnt[0]]mid_side_points[2]]
+
+            self._centre_lines.append(LineStringSc(coords_line))
+
+        if triangle._type == 2:
+            # Sleeve triangle skeleton added between the mid point of side adjacent to another triangle
+            mid_pnts = []
+            for i,side in enumerate(triangle._sides):
+                if side == 1:
+                    mid_pnts.apeend(triangle._mid_side_pnts[i])
+            triangle._centre_lines.append(LineString([mid_pnts[0], mid_pnts[1]]))
+
+        if triangle._type == 3:
+            # Junction triangle T type skeleton added.
+            centroid_x = (coords[0][0] + coords[1][0] + coords[2][0]) / 3.
+            centroid_y = (coords[0][1] + coords[1][1] + coords[2][1]) / 3.
+            centroid = [centroid_x, centroid_y]
+
+            for mid_side_pnt in triangle._mid_side_pnts:
+                triangle._centre_lines.append(LineString([centroid, mid_side_pnt]))
+
+        return
 
 
 class ChordalAxis(object):
