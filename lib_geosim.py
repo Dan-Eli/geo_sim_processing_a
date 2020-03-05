@@ -9,6 +9,7 @@ General classes and utilities needed for the GeoSim.
 import math
 from shapely.geometry import Point, LineString, LinearRing, Polygon
 from shapely.ops import linemerge
+from collections.abc import Iterable
 from shapely.strtree import STRtree
 import fiona
 
@@ -109,6 +110,25 @@ class GenUtil:
     ZERO = 0.000001
     RADIAN = 'Radian'
     DEGREE = 'Degree'
+
+
+    @staticmethod
+    def make_iterable(iter_feature):
+        """Test if the parameter is iterable; if not make it iterable by creating a tuple of one element
+
+        *Parameters*:
+            - iter_feature: Object to test for iterability
+
+        *Returns*:
+            - Iterable object
+
+        """
+
+        if not isinstance(iter_feature, Iterable):
+            iter_feature = (iter_feature,)
+
+        return iter_feature
+
 
     @staticmethod
     def distance(p1, p2):
@@ -924,6 +944,13 @@ class ChordalAxis2(object):
 
         self.search_tolerance = search_tolerance
 
+        # Add attributes to the triangles
+        for triangle in triangles:
+            triangle._center_lines = []  # List to store center line
+            triangle._type = None        # Type of triangle: 0:isolated; 1:terminal; 2:sleeve; 3:junction
+            triangle._sides = []         # List indicating if there is an adjacent triangle for each side (0:No; 1:Yes)
+            triangle._mid_pnt_side = []  # List of the mid Point of each side
+
         lst_valid_triangles = self._validate_triangles(triangles)
 
         self.triangle_clusters = self._build_clusters(lst_valid_triangles)
@@ -1036,7 +1063,6 @@ class ChordalAxis2(object):
         mid_pnt_side_1 = LineString((coords[1], coords[2])).interpolate(0.5, normalized=True)
         mid_pnt_side_2 = LineString((coords[2], coords[0])).interpolate(0.5, normalized=True)
         seed_triangle._mid_pnt_side = [mid_pnt_side_0, mid_pnt_side_1, mid_pnt_side_2]
-        seed_triangle._type = sum(seed_triangle._mid_pnt_side)
 
 
         # Fins adjacent triangle on each side
@@ -1045,12 +1071,12 @@ class ChordalAxis2(object):
         adjacent_side_2 = self._find_adjacent_triangle(seed_triangle, mid_pnt_side_2)
 
         # Build the list
-        seed_triangle._sides = []
         for adjacent_side in (adjacent_side_0, adjacent_side_1, adjacent_side_2):
             if adjacent_side is not None:
                 seed_triangle._sides.append(1)  # There is a triangle on this side
             else:
                 seed_triangle._sides.append(0)  # There is no triangle on this side
+        seed_triangle._type = sum(seed_triangle._sides) # Number of side adjacent to another triangle (max: 3)
 
         for adjacent_side in (adjacent_side_0, adjacent_side_1, adjacent_side_2):
             if adjacent_side is not None:
@@ -1063,7 +1089,7 @@ class ChordalAxis2(object):
                 # No triangle to process
                 pass
 
-    def create_centre_line(self, triangle):
+    def _create_centre_line(self, triangle):
         """Calculates and extract the center line of one triangle
 
         The center line depends of the type of triangle
@@ -1077,7 +1103,7 @@ class ChordalAxis2(object):
                                         - creates 3 lines from the mid side to the baricenter
         """
 
-
+        coords = list(triangle.coords)
 
         # Process each case depending on the number of internal side of the triangle
         if triangle._type == 0:
@@ -1086,12 +1112,12 @@ class ChordalAxis2(object):
 
         if triangle._type == 1:
             # Terminal triangle add line from the extremity of the triangle up to mid opposite side
-            if triangles._sides[0] == 1:
+            if triangle._sides[0] == 1:
                 coords_line = [coords[2], triangle.mid_side_pnt[0]]
-            if triangles._sides[1] == 1:
-                coords_line = [coords[0], triangle.mid_side_pnt[1]]mid_side_points[1]]
-            if triangles._sides[2] == 1:
-                coords_line = [coords[1], triangle.mid_side_pnt[0]]mid_side_points[2]]
+            if triangle._sides[1] == 1:
+                coords_line = [coords[0], triangle.mid_side_pnt[1]]
+            if triangle._sides[2] == 1:
+                coords_line = [coords[1], triangle.mid_side_pnt[0]]
 
             self._centre_lines.append(LineStringSc(coords_line))
 
@@ -1113,6 +1139,21 @@ class ChordalAxis2(object):
                 triangle._centre_lines.append(LineString([centroid, mid_side_pnt]))
 
         return
+
+    def get_skeleton(self):
+
+        merged_center_lines = []
+        for triangle_cluster in self.triangle_clusters:
+            center_lines = []
+            for triangle in triangle_cluster:
+                self._create_centre_line(triangle)
+                center_lines += triangle._center_lines
+            merge_center_line = linemerge(center_lines)
+            merge_center_line = GenUtil.make_iterable(merge_center_line)
+            merged_center_lines += merge_center_line
+
+        return merged_center_lines
+
 
 
 class ChordalAxis(object):

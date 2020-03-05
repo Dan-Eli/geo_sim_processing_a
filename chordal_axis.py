@@ -115,12 +115,12 @@ h = LineString([(11,11), (12,12), (13,11), (11,11)])
 
 case3 = [a,b,c,d, e,f,g,h]
 
-lst_triangles = case3
+lst_triangles = case0
 
 
 
 ca = ChordalAxis2(lst_triangles, GenUtil.ZERO)
-centre_lines = ca.get_skeletton()
+centre_lines = ca.get_skeleton()
 # Store the chordal axis in the output
 for centre_line in centre_lines:
     centre_line.sb_layer_name = command.skeleton
