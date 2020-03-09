@@ -17,7 +17,6 @@ def managae_arguments():
     # Setting the parameters of the command line
     parser = argparse.ArgumentParser()
     parser.add_argument("in_file", help="input vector file")
-#    parser.add_argument("-p", "--polygon", type=str, help="input layer name containing the polygon")
     parser.add_argument("-t", "--triangle", type=str, help="input layer name containing the result of the triangulation (triangles)")
     parser.add_argument("-s", "--skeleton", type=str, help="name of output skeleton layer (centre line)")
 
@@ -63,13 +62,11 @@ geo_content = GeoContent(crs=None, driver=None, schemas={}, in_features=[], out_
                          in_nbr_triangles=0, bounds=[], out_nbr_points=0,
                          out_nbr_line_strings=0, out_nbr_polygons=0)
 
-
-"""
 # Read the command line arguments
 command = managae_arguments()
 
 # Extract and load the layers of the input file
-layers = [command.tesselation]
+layers = [command.triangle]
 GenUtil.read_in_file (command.in_file, geo_content, layers)
 
 triangle_dict = {}
@@ -79,7 +76,6 @@ for in_feature in geo_content.in_features:
         triangle_dict[key].append(in_feature)
     else:
         triangle_dict[key] = [in_feature]
-"""
 
 # Reset in_features
 geo_content.in_features = None
@@ -115,8 +111,7 @@ h = LineString([(11,11), (12,12), (13,11), (11,11)])
 
 case3 = [a,b,c,d, e,f,g,h]
 
-lst_triangles = case0
-
+lst_triangles = case3
 
 
 ca = ChordalAxis2(lst_triangles, GenUtil.ZERO)

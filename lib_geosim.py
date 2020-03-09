@@ -946,7 +946,7 @@ class ChordalAxis2(object):
 
         # Add attributes to the triangles
         for triangle in triangles:
-            triangle._center_lines = []  # List to store center line
+            triangle._centre_lines = []  # List to store center line
             triangle._type = None        # Type of triangle: 0:isolated; 1:terminal; 2:sleeve; 3:junction
             triangle._sides = []         # List indicating if there is an adjacent triangle for each side (0:No; 1:Yes)
             triangle._mid_pnt_side = []  # List of the mid Point of each side
@@ -1113,21 +1113,21 @@ class ChordalAxis2(object):
         if triangle._type == 1:
             # Terminal triangle add line from the extremity of the triangle up to mid opposite side
             if triangle._sides[0] == 1:
-                coords_line = [coords[2], triangle.mid_side_pnt[0]]
+                coords_line = [coords[2], triangle._mid_pnt_side[0]]
             if triangle._sides[1] == 1:
-                coords_line = [coords[0], triangle.mid_side_pnt[1]]
+                coords_line = [coords[0], triangle._mid_pnt_side[1]]
             if triangle._sides[2] == 1:
-                coords_line = [coords[1], triangle.mid_side_pnt[0]]
+                coords_line = [coords[1], triangle._mid_pnt_side[2]]
 
-            self._centre_lines.append(LineStringSc(coords_line))
+            triangle._centre_lines.append(LineString(coords_line))
 
         if triangle._type == 2:
             # Sleeve triangle skeleton added between the mid point of side adjacent to another triangle
-            mid_pnts = []
+            mid_pnt = []
             for i,side in enumerate(triangle._sides):
                 if side == 1:
-                    mid_pnts.apeend(triangle._mid_side_pnts[i])
-            triangle._centre_lines.append(LineString([mid_pnts[0], mid_pnts[1]]))
+                    mid_pnt.append(triangle._mid_pnt_side[i])
+            triangle._centre_lines.append(LineString([mid_pnt[0], mid_pnt[1]]))
 
         if triangle._type == 3:
             # Junction triangle T type skeleton added.
@@ -1135,24 +1135,24 @@ class ChordalAxis2(object):
             centroid_y = (coords[0][1] + coords[1][1] + coords[2][1]) / 3.
             centroid = [centroid_x, centroid_y]
 
-            for mid_side_pnt in triangle._mid_side_pnts:
+            for mid_side_pnt in triangle._mid_pnt_side:
                 triangle._centre_lines.append(LineString([centroid, mid_side_pnt]))
 
         return
 
     def get_skeleton(self):
 
-        merged_center_lines = []
+        merged_centre_lines = []
         for triangle_cluster in self.triangle_clusters:
-            center_lines = []
+            centre_lines = []
             for triangle in triangle_cluster:
                 self._create_centre_line(triangle)
-                center_lines += triangle._center_lines
-            merge_center_line = linemerge(center_lines)
-            merge_center_line = GenUtil.make_iterable(merge_center_line)
-            merged_center_lines += merge_center_line
+                centre_lines += triangle._centre_lines
+            merge_centre_line = linemerge(centre_lines)
+            merged_centre_line = GenUtil.make_iterable(merge_centre_line)
+            merged_centre_lines += merged_centre_line
 
-        return merged_center_lines
+        return merged_centre_lines
 
 
 
