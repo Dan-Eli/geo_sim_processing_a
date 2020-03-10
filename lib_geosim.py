@@ -1013,7 +1013,37 @@ class ChordalAxis2(object):
         self.rtree_triangles = STRtree(lst_triangles)
         clusters = []
 
+
+        s_con = SpatialContainer()
+#        s_con.add_features(lst_triangles)
+        for i, triangle in enumerate(lst_triangles):
+            coords = list(triangle.coords)
+            mid_pnt_side_0 = LineString([coords[0], coords[1]]).interpolate(0.5, normalized=True)
+            mid_pnt_side_1 = LineString((coords[1], coords[2])).interpolate(0.5, normalized=True)
+            mid_pnt_side_2 = LineString((coords[2], coords[0])).interpolate(0.5, normalized=True)
+            a = mid_pnt_side_0.buffer(self.search_tolerance * 10.)
+            b = mid_pnt_side_1.buffer(self.search_tolerance * 10.)
+            c = mid_pnt_side_2.buffer(self.search_tolerance * 10.)
+#            t0 = s_con.get_features(mid_pnt_side_0.bounds)
+#            t1 = s_con.get_features(mid_pnt_side_1.bounds)
+#            t2 = s_con.get_features(mid_pnt_side_2.bounds)
+            triangles0 = self.rtree_triangles.query(mid_pnt_side_0)
+            triangles1 = self.rtree_triangles.query(mid_pnt_side_0)
+            triangles2 = self.rtree_triangles.query(mid_pnt_side_0)
+
+#            adjacent_side_0 = self._find_adjacent_triangle(triangle, mid_pnt_side_0)
+#            adjacent_side_1 = self._find_adjacent_triangle(triangle, mid_pnt_side_1)
+#            adjacent_side_2 = self._find_adjacent_triangle(triangle, mid_pnt_side_2)
+#            triangle._ok = [adjacent_side_0, adjacent_side_1, adjacent_side_2]
+
+            if i%1000 == 0:
+                print (i)
+
+        0/0
+
+
         while len(dict_triangles) >= 1:
+            print (len(dict_triangles))
             seed_triangle = next(iter(dict_triangles.values()))
             cluster = []
             self._build_one_cluster(dict_triangles, seed_triangle, cluster)

@@ -69,13 +69,9 @@ command = managae_arguments()
 layers = [command.triangle]
 GenUtil.read_in_file (command.in_file, geo_content, layers)
 
-triangle_dict = {}
+lst_triangles = []
 for in_feature in geo_content.in_features:
-    key = in_feature.sb_properties[command.attribute]
-    if key in triangle_dict.keys():
-        triangle_dict[key].append(in_feature)
-    else:
-        triangle_dict[key] = [in_feature]
+    lst_triangles.append(in_feature)
 
 # Reset in_features
 geo_content.in_features = None
@@ -111,7 +107,7 @@ h = LineString([(11,11), (12,12), (13,11), (11,11)])
 
 case3 = [a,b,c,d, e,f,g,h]
 
-lst_triangles = case3
+#lst_triangles = case3
 
 
 ca = ChordalAxis2(lst_triangles, GenUtil.ZERO)
