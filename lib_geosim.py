@@ -1005,6 +1005,8 @@ class ChordalAxis2(object):
 
     def _build_clusters(self, lst_triangles):
 
+        import random
+        random.shuffle(lst_triangles)
         dict_triangles = {}
         for id, triangle in enumerate(lst_triangles):
             triangle._id = id
@@ -1036,8 +1038,8 @@ class ChordalAxis2(object):
 #            adjacent_side_2 = self._find_adjacent_triangle(triangle, mid_pnt_side_2)
 #            triangle._ok = [adjacent_side_0, adjacent_side_1, adjacent_side_2]
 
-            if i%1000 == 0:
-                print (i)
+            if i%100 == 0:
+                print (i, " of ", len(lst_triangles))
 
         0/0
 
