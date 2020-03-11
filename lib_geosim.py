@@ -1277,7 +1277,7 @@ class ChordalAxis(object):
             merged_centre_lines += merged_centre_line
 
         return merged_centre_lines
-    
+
 
 class GeoSimException(Exception):
     """

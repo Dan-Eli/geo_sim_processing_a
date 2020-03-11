@@ -1,6 +1,8 @@
 # GeoSim
 
-## Introduction
+GeoSim is a set of tools aims to simplify and or generlize line and polygon features. It is composed of 2 tools Sherbend[Test](#Sherbend) and [ChordalAxis](#Chordal Axis)
+
+# Sherbend
 
 Sherbend is a geospatial simplification and generalization tool for lines and polygons.  Sherbend is an implementation and an improvement of the algorithm described in the paper "Line Generalization Based on Analysis of Shape Characteristics, Zeshen Wang and Jean-Claude Müller, 1998" often known as "Bend Simplify" or "Wang Algorithm".  The particularity of this algorithm is that for each line it analyzes its bends (curves) and decides which one to simplify, trying to emulate what a cartographer would do manually to simplify or generalize a line.  Sherbend will accept points, lines and polygons as input.  Even though points cannot be simplified, they are used for topological relationship validations. Sherbend can accept GeoPackage and Esri Shape file as input/ouput but not a mixed of both.
 
@@ -110,3 +112,7 @@ fiona._err.CPLE_AppDefinedError: b'sqlite3_exec(CREATE VIRTUAL TABLE "rtree_line
 
 Process finished with exit code 0
 ```
+
+# Chordal Axis
+
+ChordalAxis is a geospatial tool that takes triangles usually the result of a constraint Delauny trianglulation and creates the skeleton (the center line).  ChordalAxis is based 
