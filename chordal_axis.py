@@ -76,6 +76,7 @@ for in_feature in geo_content.in_features:
 # Reset in_features
 geo_content.in_features = None
 
+
 a = LineString([(0,0), (1,1), (2,2), (0,0)])
 b = LineString([(10,10), (11,11), (12,12), (10,10)])
 case0 = [a,b]
@@ -120,8 +121,8 @@ for centre_line in centre_lines:
 
 print ("-------")
 print("Name of input file: {}".format(command.in_file))
-print ("Name of input tesselation layer: {}".format(command.tesselation))
-print ("Nampe of output skeleton layer: {}".format(command.skeleton))
+#print ("Name of input tesselation layer: {}".format(command.tesselation))
+#print ("Nampe of output skeleton layer: {}".format(command.skeleton))
 print ("-----")
 
 
@@ -129,5 +130,5 @@ print ("-----")
 geo_content.layer_names = [command.skeleton]
 GenUtil.write_out_file_append (command.in_file, geo_content)
 
-print ("Number of point features written: {}".format(geo_content.out_nbr_points))
-print ("Number of line string features written: {}".format(geo_content.out_nbr_line_strings))
+#print ("Number of point features written: {}".format(geo_content.out_nbr_points))
+#print ("Number of line string features written: {}".format(geo_content.out_nbr_line_strings))

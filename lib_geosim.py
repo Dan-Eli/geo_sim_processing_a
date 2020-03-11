@@ -10,6 +10,7 @@ import math
 from shapely.geometry import Point, LineString, LinearRing, Polygon
 from shapely.ops import linemerge
 from collections.abc import Iterable
+from collections import OrderedDict
 from shapely.strtree import STRtree
 import fiona
 
@@ -535,7 +536,7 @@ class SpatialContainer(object):
         if issubclass(feature.__class__, (PointSc, LineStringSc, PolygonSc)):
             pass
         else:
-            raise GenException('Unsupported class: {}'.format(str(feature.__class__)))
+            raise GeoSimException('Unsupported class: {}'.format(str(feature.__class__)))
 
         bounds = feature.bounds
 
@@ -940,20 +941,21 @@ class SpatialContainerSTRtree(object):
 
 class ChordalAxis2(object):
 
-    def __init__(self, triangles, search_tolerance=GenUtil.ZERO):
+    def __init__(self, lst_triangle, search_tolerance=GenUtil.ZERO):
 
         self.search_tolerance = search_tolerance
 
-        # Add attributes to the triangles
-        for triangle in triangles:
-            triangle._centre_lines = []  # List to store center line
-            triangle._type = None        # Type of triangle: 0:isolated; 1:terminal; 2:sleeve; 3:junction
-            triangle._sides = []         # List indicating if there is an adjacent triangle for each side (0:No; 1:Yes)
-            triangle._mid_pnt_side = []  # List of the mid Point of each side
+        self._validate_triangles(lst_triangle)
 
-        lst_valid_triangles = self._validate_triangles(triangles)
+        # Transform the Triangle LineString into LineStringSc to be loaded in SpatialContainer
+        for i, triangle in enumerate(lst_triangle):
+            triangle = LineStringSc(triangle.coords)
+            triangle._id = i
+            lst_triangle[i] = triangle
 
-        self.triangle_clusters = self._build_clusters(lst_valid_triangles)
+        self._build_topology(lst_triangle)
+
+        self.triangle_clusters = self._build_clusters()
 
         return
 
@@ -1001,69 +1003,21 @@ class ChordalAxis2(object):
                 # There are one or more errors in the triangles
                 raise GeoSimException("Error in the triangles... cannot process them...")
 
-            return triangles
-
-    def _build_clusters(self, lst_triangles):
-
-        import random
-        random.shuffle(lst_triangles)
-        dict_triangles = {}
-        for id, triangle in enumerate(lst_triangles):
-            triangle._id = id
-            dict_triangles[id] = triangle
-
-        self.rtree_triangles = STRtree(lst_triangles)
-        clusters = []
 
 
-        s_con = SpatialContainer()
-#        s_con.add_features(lst_triangles)
-        for i, triangle in enumerate(lst_triangles):
-            coords = list(triangle.coords)
-            mid_pnt_side_0 = LineString([coords[0], coords[1]]).interpolate(0.5, normalized=True)
-            mid_pnt_side_1 = LineString((coords[1], coords[2])).interpolate(0.5, normalized=True)
-            mid_pnt_side_2 = LineString((coords[2], coords[0])).interpolate(0.5, normalized=True)
-            a = mid_pnt_side_0.buffer(self.search_tolerance * 10.)
-            b = mid_pnt_side_1.buffer(self.search_tolerance * 10.)
-            c = mid_pnt_side_2.buffer(self.search_tolerance * 10.)
-#            t0 = s_con.get_features(mid_pnt_side_0.bounds)
-#            t1 = s_con.get_features(mid_pnt_side_1.bounds)
-#            t2 = s_con.get_features(mid_pnt_side_2.bounds)
-            triangles0 = self.rtree_triangles.query(mid_pnt_side_0)
-            triangles1 = self.rtree_triangles.query(mid_pnt_side_0)
-            triangles2 = self.rtree_triangles.query(mid_pnt_side_0)
+            return
 
-#            adjacent_side_0 = self._find_adjacent_triangle(triangle, mid_pnt_side_0)
-#            adjacent_side_1 = self._find_adjacent_triangle(triangle, mid_pnt_side_1)
-#            adjacent_side_2 = self._find_adjacent_triangle(triangle, mid_pnt_side_2)
-#            triangle._ok = [adjacent_side_0, adjacent_side_1, adjacent_side_2]
-
-            if i%100 == 0:
-                print (i, " of ", len(lst_triangles))
-
-        0/0
-
-
-        while len(dict_triangles) >= 1:
-            print (len(dict_triangles))
-            seed_triangle = next(iter(dict_triangles.values()))
-            cluster = []
-            self._build_one_cluster(dict_triangles, seed_triangle, cluster)
-            clusters.append(cluster)
-
-        return clusters
-
-    def _find_adjacent_triangle(self, seed_triangle, mid_point_side):
+    def _find_adjacent_triangle(self, seed_triangle, mid_pnt_side):
 
         # Find adjacent triagles
-        triangles = self.rtree_triangles.query(mid_point_side.buffer(self.search_tolerance * 1000.))
+        triangles = self.s_container.get_features(bounds=mid_pnt_side.bounds,remove_features=[seed_triangle])
 
         min_distance = self.search_tolerance
         target_triangle = None
         nbr_near_zero = 0
         for triangle in triangles:
             if triangle._id != seed_triangle._id:
-                distance = mid_point_side.distance(triangle)
+                distance = mid_pnt_side.distance(triangle)
                 if distance < self.search_tolerance:
                     nbr_near_zero += 1
                     if distance < min_distance:
@@ -1074,52 +1028,104 @@ class ChordalAxis2(object):
                 pass
 
         if nbr_near_zero >= 2:
-            xy = (mid_point_side.x, mid_point_side.y)
+            xy = (mid_pnt_side.x, mid_pnt_side.y)
             print("***Warning*** Triangles are to small: {0} Simplify them (e.g. Douglas Peucker)".format(xy))
 
         return target_triangle
 
-    def _build_one_cluster(self, dict_triangles, seed_triangle, cluster):
 
-        # Add the seed tiangle
-        cluster.append(seed_triangle)
+    def _set_attributes(self, triangle):
 
-        # Remove from the dictionary
-        del dict_triangles[seed_triangle._id]
-
-        # Find the mid point of each side of the triangle
-        coords = list(seed_triangle.coords)
+        # Add attributes to the triangle
+        triangle._centre_lines = []  # List to store center line
+        triangle._adjacent_sides = []  # counter of the number of adjacent side (max=3)
 
         # Calculate the mis point of each side
+        coords = list(triangle.coords)
         mid_pnt_side_0 = LineString([coords[0], coords[1]]).interpolate(0.5, normalized=True)
         mid_pnt_side_1 = LineString((coords[1], coords[2])).interpolate(0.5, normalized=True)
         mid_pnt_side_2 = LineString((coords[2], coords[0])).interpolate(0.5, normalized=True)
-        seed_triangle._mid_pnt_side = [mid_pnt_side_0, mid_pnt_side_1, mid_pnt_side_2]
-
+        triangle._mid_pnt_side = [mid_pnt_side_0, mid_pnt_side_1, mid_pnt_side_2]
 
         # Fins adjacent triangle on each side
-        adjacent_side_0 = self._find_adjacent_triangle(seed_triangle, mid_pnt_side_0)
-        adjacent_side_1 = self._find_adjacent_triangle(seed_triangle, mid_pnt_side_1)
-        adjacent_side_2 = self._find_adjacent_triangle(seed_triangle, mid_pnt_side_2)
+        adjacent_side_0 = self._find_adjacent_triangle(triangle, mid_pnt_side_0)
+        adjacent_side_1 = self._find_adjacent_triangle(triangle, mid_pnt_side_1)
+        adjacent_side_2 = self._find_adjacent_triangle(triangle, mid_pnt_side_2)
+        triangle._adjacent_sides_ref = [adjacent_side_0, adjacent_side_1, adjacent_side_2]
 
-        # Build the list
-        for adjacent_side in (adjacent_side_0, adjacent_side_1, adjacent_side_2):
-            if adjacent_side is not None:
-                seed_triangle._sides.append(1)  # There is a triangle on this side
+        # Find and set adjacent triangles
+        for adjacent_sides_ref in (triangle._adjacent_sides_ref):
+            if adjacent_sides_ref is not None:
+                triangle._adjacent_sides.append(1)  # There is a triangle on this side
             else:
-                seed_triangle._sides.append(0)  # There is no triangle on this side
-        seed_triangle._type = sum(seed_triangle._sides) # Number of side adjacent to another triangle (max: 3)
+                triangle._adjacent_sides.append(0)  # There is no triangle on this side
+        triangle._type = sum(triangle._adjacent_sides)  # Number of side adjacent to another triangle (max: 3)
 
-        for adjacent_side in (adjacent_side_0, adjacent_side_1, adjacent_side_2):
-            if adjacent_side is not None:
-                if adjacent_side._id in dict_triangles:
-                    self._build_one_cluster(dict_triangles, adjacent_side, cluster)
-                else:
-                    # triangle already processed
-                    pass
+
+    def _build_topology(self, lst_triangle):
+
+
+        # Create spatial container
+        self.s_container = SpatialContainer()
+        # Load triangles
+        self.s_container.add_features(lst_triangle)
+
+        for triangle in self.s_container.get_features():
+            self._set_attributes(triangle)
+
+    def _build_clusters(self):
+
+
+        dict_triangles = {}
+        clusters = []
+        for triangle in self.s_container.get_features():
+             dict_triangles[triangle._id] = triangle
+
+        while len(dict_triangles) >= 1:
+            print (len(dict_triangles))
+            seed_triangle = next(iter(dict_triangles.values()))
+            cluster = self._build_one_cluster(dict_triangles, seed_triangle)
+            clusters.append(cluster)
+
+        return clusters
+
+    def _build_one_cluster(self, dict_triangles, seed_triangle):
+
+        # Create cluster list to accumulate triangle in cluster
+        cluster = []
+
+        # Create the stack to simulate recursivity
+        stack = []
+
+        # Initiate the loop
+        stack.append(seed_triangle)
+
+        # Loop over the stack
+        while stack:
+            # Fetch the next triangle
+            triangle = stack.pop()
+            # Add the tiangle in the cluster
+            cluster.append(triangle)
+
+            if triangle._id in dict_triangles:
+                # Remove from the triangle from the dictionary
+                del dict_triangles[triangle._id]
+                # Process the adjacent side
+                for adjacent_side_ref in (triangle._adjacent_sides_ref):
+                    if adjacent_side_ref is not None:
+                        if adjacent_side_ref._id in dict_triangles:
+                            stack.append(adjacent_side_ref)
+                        else:
+                            # triangle already processed
+                            pass
+                    else:
+                        # No triangle to process
+                        pass
             else:
-                # No triangle to process
+                # Triangle alrerady processed
                 pass
+
+        return cluster
 
     def _create_centre_line(self, triangle):
         """Calculates and extract the center line of one triangle
@@ -1144,11 +1150,11 @@ class ChordalAxis2(object):
 
         if triangle._type == 1:
             # Terminal triangle add line from the extremity of the triangle up to mid opposite side
-            if triangle._sides[0] == 1:
+            if triangle._adjacent_sides[0] == 1:
                 coords_line = [coords[2], triangle._mid_pnt_side[0]]
-            if triangle._sides[1] == 1:
+            if triangle._adjacent_sides[1] == 1:
                 coords_line = [coords[0], triangle._mid_pnt_side[1]]
-            if triangle._sides[2] == 1:
+            if triangle._adjacent_sides[2] == 1:
                 coords_line = [coords[1], triangle._mid_pnt_side[2]]
 
             triangle._centre_lines.append(LineString(coords_line))
@@ -1156,7 +1162,7 @@ class ChordalAxis2(object):
         if triangle._type == 2:
             # Sleeve triangle skeleton added between the mid point of side adjacent to another triangle
             mid_pnt = []
-            for i,side in enumerate(triangle._sides):
+            for i,side in enumerate(triangle._adjacent_sides):
                 if side == 1:
                     mid_pnt.append(triangle._mid_pnt_side[i])
             triangle._centre_lines.append(LineString([mid_pnt[0], mid_pnt[1]]))
