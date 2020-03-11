@@ -1,63 +1,52 @@
-from shapely.geometry import Point, LineString
+from shapely.geometry import LineString
 from shapely.strtree import STRtree
-from lib_geosim import SpatialContainer, LineStringSc
-import random
-
+import random, time
+from rtree import index
 
 lst_lines = []
+lst_intersects = []
 
-for i in range(100000):
-    offset = 10000.
-    x = random.random() * offset
-    y = random.random() * offset
+# Create the triangles
+for i in range(250000):
+    x = random.random() * 10000.
+    y = random.random() * 10000.
     coords = [(x,y),(x+5, y+5),(x,y+10),(x,y)]
-    lst_lines.append(LineStringSc(coords))
+    lst_lines.append(LineString(coords))
 
-s_cont = SpatialContainer()
-s_cont.add_features(lst_lines)
-for i in range(100000):
-    box = s_cont.get_features(Point(5000,5000).bounds)
-    box = s_cont.get_features(Point(5000,5000).bounds)
-    box = s_cont.get_features(Point(5000,5000).bounds)
-    if i%1000 == 0:
-        print (i)
-0/0
+# Create the bounding boxes
+for i in range(10000):
+    x = random.random() * 10000.
+    y = random.random() * 10000.
+    coords = [(x,y),(x+15,y),(x+15,y+15),(x,y+15),(x,y)]
+    lst_intersects.append(LineString(coords))
 
-
+# Create shapely STRtree
 tree = STRtree(lst_lines)
-for i in range(100000):
-    box = tree.query(Point(5000,5000))
-    box = tree.query(Point(5000, 5000))
-    box = tree.query(Point(5000, 5000))
-    if i%1000 == 0:
-        print (i)
 
-print ('fin')
-0/0
+# Create RTree
+idx = index.Index()
+for i, line in enumerate(lst_lines):
+    idx.insert(i, line.bounds)
+print (time.time())
 
+sec1 = time.time()
 
+# finf the intersection with STRtree
+str_tree_nbr = 0
+for intersect in lst_intersects:
+    str_tree = tree.query(intersect)
+    str_tree_nbr += len(str_tree)
 
+sec2 = time.time()
+print("Seconds for STRtree =", sec2-sec1)
+print ("Str tree number: ", str_tree_nbr)
 
-tree = STRtree([])
-box = tree.query(Point(4,4).buffer(0.99))
-print (len(box))
-lines = []
-for i in range(10):
-    line = LineString([(0,0),(i,i)])
-    line.__att = i+14
-    lines.append(line)
+# Find the intersections with RTree
+rtree_nbr = 0
+for intersect in lst_intersects:
+    rtree = idx.intersection(intersect.bounds)
+    rtree_nbr += len(list(rtree))
 
-tree = STRtree(lines)
-line = lines[5]
-line.__att1 = "coco"
-line.__att = "coco"
-box = tree.query(Point(4,4).buffer(0.99))
-
-print (len(box))
-for line in box:
-    print (line.__att)
-    line._att1 = 27
-
-
-print ('fin')
-
+sec3 = time.time()
+print("Seconds for RTree =", sec3-sec2)
+print ("Rtree number: ", rtree_nbr)
