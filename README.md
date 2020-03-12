@@ -144,5 +144,5 @@ python chordal_axis.py -t tesselation -s skeleton road.gpkg
    
  ## How it works
  
- Chordal Axis
+ In a first step, once will probably creates the triangulation from a set of polygons using a constraints Delaunay triangulation tool.  The resulting triangles are the input for ChordalAxis program.  The alogorithm will analyse each triangle, determine its type and build the appropriate skeleton (centre line).  All triangles falls with one of the following four types: firstly, _isolated triangles_ are triangles that have no adjacent triangle; secondly, _terminal triangles_ are triangles with only one adjacent triangle; third, _sleeve triangle_ when a triangle has 2 adjacent triangles; fourth, _junction polygon_ when a triangle has 3 adjacent triangles.     
  
