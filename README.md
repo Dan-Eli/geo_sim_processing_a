@@ -1,6 +1,6 @@
 # GeoSim
 
-GeoSim is a set of tools aims to simplify and or generlize line and polygon features. It is composed of 2 tools Sherbend[Test](#Sherbend) and [ChordalAxis](#Chordal Axis)
+GeoSim is a set of tools aims to simplify and or generlize line and polygon features. It is composed of 2 tools [Sherbend](#Sherbend) and [ChordalAxis](#Chordal Axis)
 
 # Sherbend
 
@@ -115,4 +115,34 @@ Process finished with exit code 0
 
 # Chordal Axis
 
-ChordalAxis is a geospatial tool that takes triangles usually the result of a constraint Delauny trianglulation and creates the skeleton (the center line).  ChordalAxis is based 
+ChordalAxis is a geospatial tool that takes triangles, usually the result of a constraint Delauny trianglulation and creates a skeleton (the center line).  ChordalAxis is an improvement of the algorithm based of the paper "Rectification of the Chordal Axis Transform and a New Criterion for Shape
+Decomposition", Lakshman Prasad, 2005". 
+
+## Medial Axis Versus Chordal Axis
+
+The skeleton of a shape is a linear feature representation of a polygonize feature. In computational geometry, it is known as the medial axis and many algorithm are approximating very well.  A major issue wth those algorithms is instability for very complex polygons such as dense river or polygon polygon network (Figure x).  The Chordal Axis has shown excellent stability in very polygon very extracting a very representative skeleton.
+
+## Usage
+
+usage: python Chordal_Axis.py \[-h] \[-t] \[-s] \ file
+
+positional arguments:
+    
+    file                  Input/Output Geopackage vector file to extract skeleton
+
+optional arguments:
+
+     -h, --help          Show this help message and exit
+     -t, --triangle      Name of the layer in the graphic file containing the triangle (Line string)
+     -s, --skeleton      Name of the layer to create that will contain the skeleton
+     
+Some example:
+
+python chordal_axis.py -t tesselation -s skeleton road.gpkg
+   
+   - Load the triangle in the layer named tesselation; create the centre line using the chordal axis and create the layer skeleton in the file road.gpkg
+   
+ ## How it works
+ 
+ Chordal Axis
+ 
