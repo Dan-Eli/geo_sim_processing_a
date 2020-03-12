@@ -151,4 +151,4 @@ python chordal_axis.py -t tesselation -s skeleton road.gpkg
 ### Rule of thumb for the use of Chordal Axis
 Chordal Axis can be used for skeleton extraction andpolygon to line transformation in the context of polygon generalization. Often the quality of the skeleton produce will depend on the density of the vertices on the polygon and defacto the density of the triangles that Chordal Axis will ingest.  Equilateral triangle produce the best skeleton while highly obtuse and/or acute triangles will produce zigzag in the line that can be simplify after.  Delaunay triangulation and Chordal Axis will give excellent results in very complex situation like a polygonized road network (figure 4).
 
-![figure4](/image/figure4.png)
+![figure4](/image/figure4.png) 
