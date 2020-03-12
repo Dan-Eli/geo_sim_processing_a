@@ -1,10 +1,6 @@
 # GeoSim
 
-GeoSim is a set of tools aims to simplify and or generlize line and polygon features. It is composed of 2 tools [Sherbend](#Sherbend) and [ChordalAxis](#Chordal Axis)
-
-# Sherbend
-
-Sherbend is a geospatial simplification and generalization tool for lines and polygons.  Sherbend is an implementation and an improvement of the algorithm described in the paper "Line Generalization Based on Analysis of Shape Characteristics, Zeshen Wang and Jean-Claude Müller, 1998" often known as "Bend Simplify" or "Wang Algorithm".  The particularity of this algorithm is that for each line it analyzes its bends (curves) and decides which one to simplify, trying to emulate what a cartographer would do manually to simplify or generalize a line.  Sherbend will accept points, lines and polygons as input.  Even though points cannot be simplified, they are used for topological relationship validations. Sherbend can accept GeoPackage and Esri Shape file as input/ouput but not a mixed of both.
+GeoSim is a set of tools aims to simplify and or generlize line and polygon features. It is composed of 2 tools [Sherbend](#Sherbend) and [Chordal_Axis](#Chordal Axis)
 
 ## Requirements  
 - Python 3.7 with the following libraries:
@@ -21,6 +17,10 @@ activate YOUR_ENV          (for Windows)
 ```
 Note on the installation:
   - For Windows users, it you are not using conda, do not forget that Shapely, Rtree and Fiona are all python wrapper of C libraries and need DLLs so use the appropriate installer (not just pip). This [site](https://www.lfd.uci.edu/~gohlke/pythonlibs/) contains a long list of Windows installers.
+
+# Sherbend
+
+Sherbend is a geospatial simplification and generalization tool for lines and polygons.  Sherbend is an implementation and an improvement of the algorithm described in the paper "Line Generalization Based on Analysis of Shape Characteristics, Zeshen Wang and Jean-Claude Müller, 1998" often known as "Bend Simplify" or "Wang Algorithm".  The particularity of this algorithm is that for each line it analyzes its bends (curves) and decides which one to simplify, trying to emulate what a cartographer would do manually to simplify or generalize a line.  Sherbend will accept points, lines and polygons as input.  Even though points cannot be simplified, they are used for topological relationship validations. Sherbend can accept GeoPackage and Esri Shape file as input/ouput but not a mixed of both.
 
 ## Usage
 
@@ -146,4 +146,9 @@ python chordal_axis.py -t tesselation -s skeleton road.gpkg
  
  A user will probably creates the triangulation from a set of polygons using a constraints Delaunay triangulation tool.  Delaunay triangulation is known to be very robust and stable.  The resulting triangles are the input for ChordalAxis program.  The alogorithm will analyse each triangle, determine its type based on the number of adjacent triangles and build the appropriate skeleton (centre line).  For the type of triangle, all triangles falls within one of the following four types: first, _isolated triangle_ when a triangle that has no adjacent triangle; second, _terminal triangle_ when a trianle has only one adjacent triangle; third, _sleeve triangle_ when a triangle has 2 adjacent triangles; fourth, _junction triangle_ when a triangle has 3 adjacent triangles.  Each type of the four types of triangle will produce a specific centre line as follow: for the _isolated triangle_, (Figure 3a) no center line (degenerated case) is created; for the _terminal triangle_, (Figure 3b) the mid point of the adjecent side is connected with the opposite angle; for _sleeve triangle_ (Figure 3c), the mid point of each adajcent side are connected; for the _junction triangle_, (Figure 3d) the mid point of each side are connected to the centre point of the triangle.  After the centre line creation all the centre ines are merged together.  Chordal Axis transform is very stable and will keek topological relationships between the skeleton and the outer and inner boundaries boudaries of the polygon defines by the triangles of the Delaynay triangulation.
  
- ![Figure3](/image/figure3.png)
+![figure3](/image/figure3.png)
+
+### Rule of thumb for the use of Chordal Axis
+Chordal Axis can be used for skeleton extraction andpolygon to line transformation in the context of polygon generalization. Often the quality of the skeleton produce will depend on the density of the vertices on the polygon and defacto the density of the triangles that Chordal Axis will ingest.  Equilateral triangle produce the best skeleton while highly obtuse and/or acute triangles will produce zigzag in the line that can be simplify after.  Delaunay triangulation and Chordal Axis will give excellent results in very complex situation like a polygonized road network (figure 4).
+
+![figure4](/image/figure4.png)
