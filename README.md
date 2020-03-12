@@ -1,6 +1,6 @@
 # GeoSim
 
-GeoSim is a set of tools aims to simplify and or generlize line and polygon features. It is composed of 2 tools [Sherbend](#Sherbend) and [Chordal Axis](#Chordal_Axis)
+GeoSim is a set of tools aims to simplify and or generlize line and polygon features. It is composed of 2 tools [Sherbend](#Sherbend) and [Chordal Axis](#Chordal-Axis)
 
 ## Requirements  
 - Python 3.7 with the following libraries:
