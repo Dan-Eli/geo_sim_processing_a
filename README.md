@@ -17,6 +17,23 @@ activate YOUR_ENV          (for Windows)
 ```
 Note on the installation:
   - For Windows users, it you are not using conda, do not forget that Shapely, Rtree and Fiona are all python wrapper of C libraries and need DLLs so use the appropriate installer (not just pip). This [site](https://www.lfd.uci.edu/~gohlke/pythonlibs/) contains a long list of Windows installers.
+  
+## Known issue with GeoPackage
+
+The following problem can occur when using fiona libraries when creating GeoPackage or layers in GeoPackage when using GeoSim tools.  It's a known issue, where the spatial index is not created for a specific layer.  The program still terminates with Exit Code 0 (meaning "success").  You can create the spatial index after in QGIS.
+
+```
+ERROR 1: sqlite3_exec(CREATE VIRTUAL TABLE "rtree_line_geom" USING rtree(id, minx, maxx, miny, maxy)) failed: table "rtree_line_geom" already exists
+Traceback (most recent call last):
+  File "fiona/_err.pyx", line 201, in fiona._err.GDALErrCtxManager.__exit__
+fiona._err.CPLE_AppDefinedError: b'sqlite3_exec(CREATE VIRTUAL TABLE "rtree_line_geom" USING rtree(id, minx, maxx, miny, maxy)) failed: table "rtree_line_geom" already exists'
+Exception ignored in: 'fiona._shim.gdal_flush_cache'
+Traceback (most recent call last):
+  File "fiona/_err.pyx", line 201, in fiona._err.GDALErrCtxManager.__exit__
+fiona._err.CPLE_AppDefinedError: b'sqlite3_exec(CREATE VIRTUAL TABLE "rtree_line_geom" USING rtree(id, minx, maxx, miny, maxy)) failed: table "rtree_line_geom" already exists'
+
+Process finished with exit code 0
+```
 
 # Sherbend
 
@@ -95,23 +112,6 @@ Note: For any given line or polygon ring, only those bends the simplification of
 
 ### Rule of thumb for the diameter
 Sherbend can be used for line simplifying often in the context of line generalization. The big question will often be what diameter should we use?  A good starting point is the cartographic rule of thumb -- the *.5mm on the map* -- which says that the minimumm distance between two lines should be greater than 0.5mm on a paper map. So to simplify (generalize) a line for representation at a scale of 1:50 000 for example a diameter of 25m should be a good starting point... 
-
-## Known issue with GeoPackage
-
-The following problem can occur when using fiona libraries when creating GeoPackage.  It's a known issue, where the spatial index is not created for a specific layer.  The program still terminates with Exit Code 0 (meaning "success").  You can create the spatial index after in QGIS.
-
-```
-ERROR 1: sqlite3_exec(CREATE VIRTUAL TABLE "rtree_line_geom" USING rtree(id, minx, maxx, miny, maxy)) failed: table "rtree_line_geom" already exists
-Traceback (most recent call last):
-  File "fiona/_err.pyx", line 201, in fiona._err.GDALErrCtxManager.__exit__
-fiona._err.CPLE_AppDefinedError: b'sqlite3_exec(CREATE VIRTUAL TABLE "rtree_line_geom" USING rtree(id, minx, maxx, miny, maxy)) failed: table "rtree_line_geom" already exists'
-Exception ignored in: 'fiona._shim.gdal_flush_cache'
-Traceback (most recent call last):
-  File "fiona/_err.pyx", line 201, in fiona._err.GDALErrCtxManager.__exit__
-fiona._err.CPLE_AppDefinedError: b'sqlite3_exec(CREATE VIRTUAL TABLE "rtree_line_geom" USING rtree(id, minx, maxx, miny, maxy)) failed: table "rtree_line_geom" already exists'
-
-Process finished with exit code 0
-```
 
 # Chordal Axis
 
