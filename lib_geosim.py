@@ -954,13 +954,19 @@ class ChordalAxis(object):
 
         self._validate_triangles(lst_triangle)
 
-        # Transform the Triangle LineString into LineStringSc to be loaded in SpatialContainer
+        # Transform the Triangle LineString into _TriangleSc to be loaded in SpatialContainer
         for i, triangle in enumerate(lst_triangle):
-            triangle = LineStringSc(triangle.coords)
+            triangle = _TriangleSc(triangle.coords)
             triangle._id = i
             lst_triangle[i] = triangle
 
-        self._build_topology(lst_triangle)
+        self.s_container  = self._build_adjacency(lst_triangle)
+
+        # Create spatial container
+        self.s_container = SpatialContainer()
+
+        # Load triangles
+        self.s_container.add_features(lst_triangle)
 
         self.triangle_clusters = self._build_clusters()
 
@@ -1012,7 +1018,7 @@ class ChordalAxis(object):
 
                 # Transform the polygon into a LineString
                 if triangle_valid:
-                    triangles[i] = LineString(coords)
+                    lst_triangle[i] = LineString(coords)
 
             if not triangle_valid:
                 # There are one or more errors in the triangles
@@ -1020,7 +1026,7 @@ class ChordalAxis(object):
 
             return
 
-    def _find_adjacent_triangle(self, in_hand_triangle, mid_pnt_side):
+    def _find_adjacent_triangle(self, in_hand_triangle):
         """Test if the parameter is iterable; if not make it iterable by creating a tuple of one element
 
         *Parameters*:
@@ -1032,29 +1038,33 @@ class ChordalAxis(object):
 
         """
 
-        # Find adjacent triangles
-        triangles = self.s_container.get_features(bounds=mid_pnt_side.bounds,remove_features=[in_hand_triangle])
+        lst_adjacent_triangle = []
+        # Loop of each side (each mid_pnt_side)
+        for mid_pnt_side in in_hand_triangle.mid_pnt_sides:
 
-        min_distance = self.search_tolerance
-        target_triangle = None
-        nbr_near_zero = 0
-        for triangle in triangles:
-            if triangle._id != in_hand_triangle._id:
+            # Find potential adjacent triangles
+            triangles = self.s_container.get_features(bounds=mid_pnt_side.bounds,remove_features=[in_hand_triangle])
+
+            # Find the closest one
+            min_distance = self.search_tolerance
+            target_triangles = [triangle for triangle in triangles if mid_pnt_side.distance(triangle) < self.search_tolerance]
+            target_triangle = None
+            nbr_near_zero = 0
+            for triangle in triangles:
                 distance = mid_pnt_side.distance(triangle)
                 if distance < self.search_tolerance:
                     nbr_near_zero += 1
                     if distance < min_distance:
                         min_distance = distance
                         target_triangle = triangle
-            else:
-                # Do not process same triangle
-                pass
 
-        if nbr_near_zero >= 2:
-            xy = (mid_pnt_side.x, mid_pnt_side.y)
-            print("***Warning*** Triangles are to small: {0} Try to simplify them (e.g. Douglas Peucker)".format(xy))
+            lst_adjacent_triangle.append(target_triangle)
 
-        return target_triangle
+            if nbr_near_zero >= 2:
+                xy = (mid_pnt_side.x, mid_pnt_side.y)
+                print("***Warning*** Triangles may be to small: {0} Try to simplify them (e.g. Douglas Peucker)".format(xy))
+
+        in_hand_triangle.set_adjacent_triangle(targent_triangle_triangle)
 
     def _set_attributes(self, triangle):
         """Sets some attribute of the triangle
@@ -1094,7 +1104,7 @@ class ChordalAxis(object):
 
         return
 
-    def _build_topology(self, lst_triangle):
+    def _build_adjacency(self, lst_triangle):
         """Build the topology
 
         Determine for each triangle if there is an adjacent triangle
@@ -1115,7 +1125,7 @@ class ChordalAxis(object):
 
         # Loop to set ssome attributes on each triangle
         for triangle in self.s_container.get_features():
-            self._set_attributes(triangle)
+            self._set_adjacent_triangle(triangle)
 
         return
 
@@ -1277,6 +1287,80 @@ class ChordalAxis(object):
             merged_centre_lines += merged_centre_line
 
         return merged_centre_lines
+
+
+
+class _TriangleSc(LineStringSc):
+
+    """LineString specialization to be included in the SpatialContainer"""
+
+    def __init__(self, coords):
+        super().__init__(coords)
+
+
+
+    @property
+    def mid_pnt_side(self):
+
+        try:
+            return self._mid_pnt_side
+        except AttributeError:
+            # Calculate the mid point of each side of the triangle
+            coords = list(self.coords)
+            mid_pnt_side_0 = LineString([coords[0], coords[1]]).interpolate(0.5, normalized=True)
+            mid_pnt_side_1 = LineString((coords[1], coords[2])).interpolate(0.5, normalized=True)
+            mid_pnt_side_2 = LineString((coords[2], coords[0])).interpolate(0.5, normalized=True)
+            self._mid_pnt_side = [mid_pnt_side_0, mid_pnt_side_1, mid_pnt_side_2]
+            return self._mid_pnt_side
+
+    @property
+    def adjacent_side_ref(self):
+
+        try:
+            return self._adjacent_side_ref
+        except AttributeError:
+            # Find adjacent triangle on each side
+            adjacent_side_0 = self._find_adjacent_triangle(triangle, mid_pnt_side_0)
+            adjacent_side_1 = self._find_adjacent_triangle(triangle, mid_pnt_side_1)
+            adjacent_side_2 = self._find_adjacent_triangle(triangle, mid_pnt_side_2)
+            self._adjacent_sides_ref = [adjacent_side_0, adjacent_side_1, adjacent_side_2]
+            return self._adjacent_sides_ref
+
+        # Add attributes to the triangle
+        triangle._centre_lines = []  # List to store center line
+        triangle._adjacent_sides = []  # counter of the number of adjacent side (max=3)
+
+        # Calculate the mid point of each side of the triangle
+        coords = list(triangle.coords)
+        mid_pnt_side_0 = LineString([coords[0], coords[1]]).interpolate(0.5, normalized=True)
+        mid_pnt_side_1 = LineString((coords[1], coords[2])).interpolate(0.5, normalized=True)
+        mid_pnt_side_2 = LineString((coords[2], coords[0])).interpolate(0.5, normalized=True)
+        triangle._mid_pnt_side = [mid_pnt_side_0, mid_pnt_side_1, mid_pnt_side_2]
+
+        # Find adjacent triangle on each side
+        adjacent_side_0 = self._find_adjacent_triangle(triangle, mid_pnt_side_0)
+        adjacent_side_1 = self._find_adjacent_triangle(triangle, mid_pnt_side_1)
+        adjacent_side_2 = self._find_adjacent_triangle(triangle, mid_pnt_side_2)
+        triangle._adjacent_sides_ref = [adjacent_side_0, adjacent_side_1, adjacent_side_2]
+
+        # Set a list of 3 items: 0: No triangle adjacent; 1: Yes triangle adjacent
+        for adjacent_sides_ref in triangle._adjacent_sides_ref:
+            if adjacent_sides_ref is not None:
+                triangle._adjacent_sides.append(1)  # There is a triangle on this side
+            else:
+                triangle._adjacent_sides.append(0)  # There is no triangle on this side
+        triangle._type = sum(triangle._adjacent_sides)  # Number of side adjacent to another triangle (max: 3)
+
+
+    @property
+
+
+
+
+
+        try:
+            return self._vertex_orientation
+        except AttributeError:
 
 
 class GeoSimException(Exception):
