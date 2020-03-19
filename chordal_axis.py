@@ -5,10 +5,10 @@ import argparse
 import sys, os
 from dataclasses import dataclass
 from typing import List
-from shapely.geometry import Point, LineString, Polygon
+from shapely.geometry import LineString
 
 
-from lib_geosim import GenUtil, ChordalAxis2, LineStringSc
+from lib_geosim import GenUtil, ChordalAxis, LineStringSc
 
 
 def managae_arguments():
@@ -111,7 +111,9 @@ case3 = [a,b,c,d, e,f,g,h]
 #lst_triangles = case3
 
 
-ca = ChordalAxis2(lst_triangles, GenUtil.ZERO)
+ca = ChordalAxis(lst_triangles, GenUtil.ZERO)
+if command.correct:
+    ca.correct_skeleton()
 centre_lines = ca.get_skeleton()
 # Store the chordal axis in the output
 for centre_line in centre_lines:
@@ -121,8 +123,11 @@ for centre_line in centre_lines:
 
 print ("-------")
 print("Name of input file: {}".format(command.in_file))
-#print ("Name of input tesselation layer: {}".format(command.tesselation))
-#print ("Nampe of output skeleton layer: {}".format(command.skeleton))
+print ("Name of input triangle layer: {}".format(command.triangle))
+print ("Nampe of output skeleton layer: {}".format(command.skeleton))
+print ("Number of polygons: {}".format(ca.nbr_polygons))
+print ("Number of triangles: {}".format(ca.nbr_triangles))
+
 print ("-----")
 
 
