@@ -938,6 +938,11 @@ class SpatialContainerSTRtree(object):
 
 class ChordalAxis(object):
 
+    ISOLATED = 0
+    TERMINAL = 1
+    SLEEVE = 2
+    JUNCTION = 3
+
     def __init__(self, lst_triangle, search_tolerance=GenUtil.ZERO):
         """Constuctor of the ChordalAxis class
 
@@ -965,9 +970,11 @@ class ChordalAxis(object):
         # Load triangles
         self.s_container.add_features(lst_triangle)
 
-        for triangle in self.s_container.get_features():
-            triangle.set_adjacent(self.s_container, self.search_tolerance)
+        # Load some class viriables
+        _TriangleSc.s_container = self.s_container
+        _TriangleSc.search_tolerance = self.search_tolerance
 
+        # Build the cluster (group of triangles part of a polygon)
         self.triangle_clusters = self._build_clusters()
 
         self.nbr_polygons = len(self.triangle_clusters)
@@ -1028,108 +1035,6 @@ class ChordalAxis(object):
                 raise GeoSimException("Error in the triangles... cannot process them...")
 
             return
-
-    def _find_adjacent_triangle11111(self, in_hand_triangle):
-        """Test if the parameter is iterable; if not make it iterable by creating a tuple of one element
-
-        *Parameters*:
-            - in_hand_triangle: Triangle (LineStringSc) to check for adjacency
-            - mid_pnt_side: Point located on one of the edge of the triangle used as search point for adjacency
-
-        *Returns*:
-            - LineStringSc of the adjacent triangle or None (if no triangle)
-
-        """
-
-        lst_adjacent_triangle = []
-        # Loop of each side (each mid_pnt_side) to find adjacent triangle
-        for mid_pnt_side in in_hand_triangle.mid_pnt_sides:
-
-            # Find all potential adjacent triangles
-            triangles = self.s_container.get_features(bounds=mid_pnt_side.bounds,remove_features=[in_hand_triangle])
-
-            # Find the closest triangle
-            min_distance = sys.float_info.max
-            nbr_near_zero = 0
-            target_triangle = None
-            for triangle in triangles:
-                distance = mid_pnt_side.distance(triangle)
-                if distance < self.search_tolerance:
-                    nbr_near_zero += 1
-                    if distance < min_distance:
-                        min_distance = distance
-                        target_triangle = triangle
-
-            lst_adjacent_triangle.append(target_triangle)
-
-            if nbr_near_zero >= 2:
-                xy = (mid_pnt_side.x, mid_pnt_side.y)
-                print("***Warning*** Triangles may be to small: {0} Try to simplify them (e.g. Douglas Peucker)".format(xy))
-
-        in_hand_triangle.set_adjacent_triangle(lst_adjacent_triangle)
-
-    def _set_attributes11111(self, triangle):
-        """Sets some attribute of the triangle
-
-        *Parameters*:
-            - triangle: LineStringSC to calculate attributes
-
-        *Returns*:
-            - None
-
-        """
-
-        # Add attributes to the triangle
-        triangle._centre_lines = []  # List to store center line
-        triangle._adjacent_sides = []  # counter of the number of adjacent side (max=3)
-
-        # Calculate the mid point of each side of the triangle
-        coords = list(triangle.coords)
-        mid_pnt_side_0 = LineString([coords[0], coords[1]]).interpolate(0.5, normalized=True)
-        mid_pnt_side_1 = LineString((coords[1], coords[2])).interpolate(0.5, normalized=True)
-        mid_pnt_side_2 = LineString((coords[2], coords[0])).interpolate(0.5, normalized=True)
-        triangle._mid_pnt_side = [mid_pnt_side_0, mid_pnt_side_1, mid_pnt_side_2]
-
-        # Finsd adjacent triangle on each side
-        adjacent_side_0 = self._find_adjacent_triangle(triangle, mid_pnt_side_0)
-        adjacent_side_1 = self._find_adjacent_triangle(triangle, mid_pnt_side_1)
-        adjacent_side_2 = self._find_adjacent_triangle(triangle, mid_pnt_side_2)
-        triangle._adjacent_sides_ref = [adjacent_side_0, adjacent_side_1, adjacent_side_2]
-
-        # Set a list of 3 items: 0: No triangle adjacent; 1: Yes triangle adjacent
-        for adjacent_sides_ref in triangle._adjacent_sides_ref:
-            if adjacent_sides_ref is not None:
-                triangle._adjacent_sides.append(1)  # There is a triangle on this side
-            else:
-                triangle._adjacent_sides.append(0)  # There is no triangle on this side
-        triangle._type = sum(triangle._adjacent_sides)  # Number of side adjacent to another triangle (max: 3)
-
-        return
-
-    def _build_adjacency11111(self, lst_triangle):
-        """Build the topology
-
-        Determine for each triangle if there is an adjacent triangle
-
-        *Parameters*:
-            - lst_triangles: list of LineStringSc
-
-        *Returns*:
-            - None
-
-        """
-
-        # Create spatial container
-        self.s_container = SpatialContainer()
-
-        # Load triangles
-        self.s_container.add_features(lst_triangle)
-
-        # Loop to set ssome attributes on each triangle
-        for triangle in self.s_container.get_features():
-            self._set_adjacent_triangle(triangle)
-
-        return
 
     def _build_clusters(self):
         """Build the clusters of triangle
@@ -1208,59 +1113,6 @@ class ChordalAxis(object):
 
         return cluster
 
-    def _create_centre_line11111(self, triangle):
-        """Calculates and extract the center line of one triangle
-
-        The center line depends of the type of triangle
-            Terminal triangle: From the side of the adjacent edge to the oposite angle
-            Sleeve triangle: Joining the mid side of the internal side
-            Junction triangle: Calculate the centroid and create 3 lines from the centroid to the mid of each side
-
-        *parameters*:
-            - triangle: LineStringSc triangle
-
-        *Returns*:
-            - None
-
-        """
-
-        coords = list(triangle.coords)
-
-        # Process each case depending on the number of internal side of the triangle
-        if triangle.type == 0:
-            # Degenerated polygon with one triangle no skeleton line added
-            pass
-
-        if triangle._type == 1:
-            # Terminal triangle add line from the extremity of the triangle up to mid opposite side
-            if triangle._adjacent_sides[0] == 1:
-                coords_line = [coords[2], triangle._mid_pnt_side[0]]
-            if triangle._adjacent_sides[1] == 1:
-                coords_line = [coords[0], triangle._mid_pnt_side[1]]
-            if triangle._adjacent_sides[2] == 1:
-                coords_line = [coords[1], triangle._mid_pnt_side[2]]
-
-            triangle._centre_lines.append(LineString(coords_line))
-
-        if triangle._type == 2:
-            # Sleeve triangle skeleton added between the mid point of side adjacent to another triangle
-            mid_pnt = []
-            for i,side in enumerate(triangle._adjacent_sides):
-                if side == 1:
-                    mid_pnt.append(triangle._mid_pnt_side[i])
-            triangle._centre_lines.append(LineString([mid_pnt[0], mid_pnt[1]]))
-
-        if triangle._type == 3:
-            # Junction triangle T type skeleton added.
-            centroid_x = (coords[0][0] + coords[1][0] + coords[2][0]) / 3.
-            centroid_y = (coords[0][1] + coords[1][1] + coords[2][1]) / 3.
-            centroid = [centroid_x, centroid_y]
-
-            for mid_side_pnt in triangle._mid_pnt_side:
-                triangle._centre_lines.append(LineString([centroid, mid_side_pnt]))
-
-        return
-
     def get_skeleton(self):
         """extract the ceneter line of each triangle merged them and create a list of LineString feature
 
@@ -1288,6 +1140,132 @@ class ChordalAxis(object):
             merged_centre_lines += merged_centre_line
 
         return merged_centre_lines
+
+    def correct_skeleton(self):
+
+        # Prune the small branch from the Junction triangle until there are no more small branch to prune
+        while True:
+            nbr_pruned = 0
+            for triangle in self.s_container.get_features():
+                if triangle.type == ChordalAxis.JUNCTION:
+                    nbr_pruned += self.prune_junction(triangle)
+            if nbr_pruned == 0:
+                break
+
+#        for triangle in self.s_container.get_features():
+#            if triangle.type == ChordalAxis.JUNCTION:
+#                branches = []
+#                for adjacent_triangle in triangle.adjacent_sides_ref:
+#                    branches.append(Branch(triangle, adjacent_triangle))
+#
+#                case = self.determine_scenario(triangle, branches)#
+#
+#                if case == 0:
+#                    for i, branch in enumerate(branches):
+#                        if branch.last_triangle == ChordalAxis.TERMINAL:
+#                            branch.del_centre_line()
+#                        else:
+#                            start_side = i
+#                    # Create a line from the start_side to the opposite angle
+#                    mid_side = triangle.mid_pnt_sides[start_side]
+#                    coord = triangle.coords[(start_side+2)%3]
+#                    triangle.centre_line = [LineString([mid_side, coord])]
+
+
+
+
+#
+#                lst_branch = [branch for branch in branches if branch.length < triangle.width]
+                print ("Cas: ", len(lst_branch), " ", list(triangle.coords))
+
+    def prune_junction(self, junction_triangle):
+        """This function prune a junction triangle of the branches that are below a certain tolerance"""
+
+        branches = []
+
+        for next_triangle in junction_triangle.adjacent_sides_ref:
+            branch = Branch(junction_triangle, next_triangle)
+            # Only keep small TERMINAL branches
+            if branch.last_triangle == ChordalAxis.TERMINAL and branch.length <= junction_triangle.width:
+                branches.append(branch)
+
+        if len(branches) == 3:
+            # The three branches of the junction Triangle are below the tolerance
+            # Remove the  branch with the smallest tolerance
+            max_length = sys.float_info.max
+            for branch in branches:
+                if branch.length < max_length:
+                    del_branches = [branch]
+                    max_length = branch.length
+
+        elif len(branches) == 2:
+            # Two branches are below the tolerance
+            if branches[0].length < branches[1].length:
+                branch_0 = branches[0]
+                branch_1 = branches[1]
+            else:
+                branch_0 = branches[1]
+                branch_1 = branches[0]
+            if branch_0.length < .3 *branch_1.length:
+                del_branches = [branch_0]
+            else:
+                del_branches = [branch_0, branch_1]
+        elif len(branches) == 1:
+            del_branches = [branches[0]]
+        else:
+            del_branches = []
+
+        if len(del_branches) >= 1:
+            for branch in del_branches:
+                # Loop over each branch
+                for triangle in branch.triangle_in_branch:
+                    # Make all the triangle forming the branch has terminal (isolated) terminal
+                    triangle.set_as_isolated()
+
+        return len(del_branches)
+
+#            # Extract the triangle id part of the branches
+#            lst_id = []
+#            for branch in branches:
+#                for triangle in branch._triangle_in_branch:
+#                    lst_id.append(triangle.id)#
+#
+#        return nbr_pruned#
+#
+#            # For the current triangle void the adjacent triangle that is now an isolated triangle
+#            for i in range(3):
+#                if junction_triangle.adjacent_sides_ref[i].id in lst_id:
+#                    junction_triangle.adjacent_sides_ref[i] = None
+#
+#
+#
+
+
+    def determine_scenario111111111111111111111(self, triangle, branches):
+
+        # Case: 1
+        # Check if the junction triangle in hand is adjacent to two TERMINAL triangles and
+        # either a Junction or Sleeve trianle
+        nbr_terminal = 0
+        nbr_sleeve = 0
+        nbr_junction = 0
+        case = None
+
+        # Evaluate adjacent triangle
+        for branch in branches:
+            if branch.last_triangle == ChordalAxis.TERMINAL:
+                nbr_terminal += 1
+            elif branch.last_triangle == ChordalAxis.SLEEVE:
+                nbr_sleeve += 1
+            else:
+                nbr_junction += 1
+
+        if nbr_terminal == 2:
+            case = 0
+
+        return case
+
+
 
 
 class _TriangleSc(LineStringSc):
@@ -1319,7 +1297,7 @@ class _TriangleSc(LineStringSc):
             return self._mid_pnt_sides
 
     @property
-    def adjacent_sides(self):
+    def adjacent_sides11111111(self):
         try:
             return self._adjacent_sides
         except AttributeError:
@@ -1333,15 +1311,54 @@ class _TriangleSc(LineStringSc):
 
             return self.adjacent_sides
 
-
     @property
     def type(self):
         try:
             return self._type
         except AttributeError:
-            self._type = sum(self.adjacent_sides)  # Number of side adjacent to another triangle (max: 3)
+            self._type = 0
+            for adjacent_side_ref in self.adjacent_sides_ref:
+                if adjacent_side_ref != None:
+                    self._type += 1
 
             return self._type
+
+    @property
+    def width(self):
+        try:
+            return self._width
+        except AttributeError:
+            lst_length = [line.length for line in self.centre_line]
+            max_length = max(lst_length)
+            self._width = max_length*2.
+
+            return self._width
+
+    @property
+    def adjacent_sides_ref(self):
+        try:
+            return self._adjacent_sides_ref
+        except AttributeError:
+            self._adjacent_sides_ref = self.get_adjacent_sides_ref()
+            return self._adjacent_sides_ref
+
+    @adjacent_sides_ref.setter
+    def adjacent_sides_ref(self, value):
+        self._adjacent_sides_ref = value
+
+        # Delete different attribute so they are recalculated
+        try:
+            del self._centre_line
+        except AttributeError:
+            pass
+        try:
+           del self._width
+        except AttributeError:
+            pass
+        try:
+            del self._type
+        except AttributeError:
+            pass
 
     @property
     def centre_line(self):
@@ -1351,6 +1368,10 @@ class _TriangleSc(LineStringSc):
             self._centre_line = self._create_centre_line()
 
             return self._centre_line
+
+    @centre_line.setter
+    def centre_line(self, value):
+        self._centre_line = value
 
     def _create_centre_line(self):
         """Calculates and extract the center line of one triangle
@@ -1372,30 +1393,30 @@ class _TriangleSc(LineStringSc):
         coords = list(self.coords)
 
         # Process each case depending on the number of internal side of the triangle
-        if self.type == 0:
+        if self.type == ChordalAxis.ISOLATED:
             # Degenerated polygon with one triangle no skeleton line added
             pass
 
-        if self._type == 1:
+        if self._type == ChordalAxis.TERMINAL:
             # Terminal triangle add line from the extremity of the triangle up to mid opposite side
-            if self.adjacent_sides[0] == 1:
+            if self.adjacent_sides_ref[0] != None:
                 coords_line = [coords[2], self.mid_pnt_sides[0]]
-            if self.adjacent_sides[1] == 1:
+            if self.adjacent_sides_ref[1] != None:
                 coords_line = [coords[0], self.mid_pnt_sides[1]]
-            if self.adjacent_sides[2] == 1:
+            if self.adjacent_sides_ref[2] != None:
                 coords_line = [coords[1], self.mid_pnt_sides[2]]
 
             centre_line.append(LineString(coords_line))
 
-        if self._type == 2:
+        if self.type == ChordalAxis.SLEEVE:
             # Sleeve triangle skeleton added between the mid point of side adjacent to another triangle
             mid_pnt = []
-            for i,side in enumerate(self._adjacent_sides):
-                if side == 1:
+            for i,adjacent_side_ref in enumerate(self._adjacent_sides_ref):
+                if adjacent_side_ref != None:
                     mid_pnt.append(self.mid_pnt_sides[i])
             centre_line.append(LineString([mid_pnt[0], mid_pnt[1]]))
 
-        if self._type == 3:
+        if self.type == ChordalAxis.JUNCTION:
             # Junction triangle T type skeleton added.
             centroid_x = (coords[0][0] + coords[1][0] + coords[2][0]) / 3.
             centroid_y = (coords[0][1] + coords[1][1] + coords[2][1]) / 3.
@@ -1406,7 +1427,26 @@ class _TriangleSc(LineStringSc):
 
         return centre_line
 
-    def set_adjacent(self, s_container, search_tolerance):
+    def set_as_isolated(self):
+        """Set the attribute of the triangle to simulate a terminal triangle"""
+
+        # To simulate an Isolated triangle the current triangle must not reference any adjacent triangle and
+        # all adjacent triangle must not reference the current triangle
+        # This is the case of a double reference so both reference must be put at None
+        for triangle_ref in self.adjacent_sides_ref:
+            if triangle_ref != None:
+                new_adjacent_sides_ref = triangle_ref.adjacent_sides_ref
+                for j in range(3):
+                    if new_adjacent_sides_ref[j] is not None and \
+                       new_adjacent_sides_ref[j].id == self.id:
+                        # Set the first referecne to None
+                        new_adjacent_sides_ref[j] = None
+                triangle_ref.adjacent_sides_ref = new_adjacent_sides_ref
+
+        # Set the second reference to None
+        self.adjacent_sides_ref = [None, None, None]
+
+    def get_adjacent_sides_ref(self):
         """Test if the parameter is iterable; if not make it iterable by creating a tuple of one element
 
         *Parameters*:
@@ -1418,13 +1458,13 @@ class _TriangleSc(LineStringSc):
 
         """
 
-        self.adjacent_sides_ref = []
+        adjacent_sides_ref = []
 
         # Loop of each side (each mid_pnt_side) to find adjacent triangle
         for mid_pnt_side in self.mid_pnt_sides:
 
             # Find all potential adjacent triangles
-            triangles = s_container.get_features(bounds=mid_pnt_side.bounds,remove_features=[self])
+            triangles = _TriangleSc.s_container.get_features(bounds=mid_pnt_side.bounds,remove_features=[self])
 
             # Find the closest triangle
             min_distance = sys.float_info.max
@@ -1432,57 +1472,58 @@ class _TriangleSc(LineStringSc):
             target_triangle = None
             for triangle in triangles:
                 distance = mid_pnt_side.distance(triangle)
-                if distance < search_tolerance:
+                if distance < _TriangleSc.search_tolerance:
                     nbr_near_zero += 1
                     if distance < min_distance:
                         min_distance = distance
                         target_triangle = triangle
 
-            self.adjacent_sides_ref.append(target_triangle)
+            adjacent_sides_ref.append(target_triangle)
 
             if nbr_near_zero >= 2:
                 xy = (mid_pnt_side.x, mid_pnt_side.y)
                 print("***Warning*** Triangles may be to small: {0} Try to simplify them (e.g. Douglas Peucker)".format(xy))
 
+        return adjacent_sides_ref
+
 
 class Branch:
+    """Manage one branch 
+    """
 
     def __init__(self, current_triangle, next_triangle):
 
-        self._triangle_in_branch = []
-
+        self.triangle_in_branch = []
+        self.length = 0.
         max_length = current_triangle.width * 5.
 
-        if next_triangle.type == 3:
-            #Junction triangle nothing to do
-            self.valid = False
+        if next_triangle.type == ChordalAxis.JUNCTION:
+            self.last_triangle = ChordalAxis.JUNCTION
+        elif next_triangle.type == ChordalAxis.TERMINAL:
+            self.last_triangle = ChordalAxis.TERMINAL
+            self.length = next_triangle.centre_line[0].length
+            self.triangle_in_branch.append(next_triangle)
         else:
-            self.valid = True
-            while True:
-                self._triangle_in_branch.append(next_triangle)
-                self.length += next_triangle.centre_line[0].length
-                if self.length > max_length:
-                    break
-                if self.next_triangle == 1:
-                    # Terminal triangle stop search
-                    break
-                # Get the next triangle
-                adjacents = [adjacent for adjacent in next_triangle.adjacent_sides_ref if adjacent is not None]
-                current_triangle = next_triangle
-                if adjacents[0].id == current_triangle.id:
-                    next_triangle = adjacents[0]
+            while next_triangle.type == ChordalAxis.SLEEVE or next_triangle.type == ChordalAxis.TERMINAL:
+                self.triangle_in_branch.append(next_triangle)  # Add the next triangle in the list
+                self.length += next_triangle.centre_line[0].length  # Add the length
+                self.last_triangle = next_triangle.type
+                if next_triangle.type == ChordalAxis.SLEEVE and self.length < max_length:
+                    # Get the next triangle
+                    adjacents = [adjacent for adjacent in next_triangle.adjacent_sides_ref if adjacent is not None]
+                    if adjacents[0].id == current_triangle.id:
+                        current_triangle, next_triangle = next_triangle, adjacents[1]
+                    else:
+                        current_triangle, next_triangle = next_triangle, adjacents[0]
                 else:
-                    next_triangle = adjacents[1]
-                if next_triangle.type == 3:
-                    # Junction triangle nothing to do
+                    # End of logping reached
                     break
-
-    def del_centre_line(self):
-        """Delete all the centre line in the triangles forming the branch
-
-        """
-        for triangle in self._triangle_in_branch:
-            triangle.centre_line = []
+#    def del_centre_line(self):
+#        """Delete all the centre line in the triangles forming the branch#
+#
+#        """
+#        for triangle in self._triangle_in_branch:
+#            triangle.centre_line = []
 
 
 

@@ -112,8 +112,8 @@ case3 = [a,b,c,d, e,f,g,h]
 
 
 ca = ChordalAxis(lst_triangles, GenUtil.ZERO)
-if command.correct:
-    ca.correct_skeleton()
+#if command.correct:
+ca.correct_skeleton()
 centre_lines = ca.get_skeleton()
 # Store the chordal axis in the output
 for centre_line in centre_lines:
