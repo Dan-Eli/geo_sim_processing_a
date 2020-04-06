@@ -18,14 +18,14 @@ source activate YOUR_ENV   (for Linux and macos)
 activate YOUR_ENV          (for Windows)
 ```
 Note on the installation:
-  - For Windows users, it you are not using conda, do not forget that Shapely, Rtree and Fiona are all python wrapper of C libraries and need DLLs so use the appropriate installer (not just pip). This [site](https://www.lfd.uci.edu/~gohlke/pythonlibs/) contains a long list of Windows installers.
+  - For Windows users, if you are not using conda, do not forget that Shapely, Rtree and Fiona are all python wrapper of C libraries and need DLLs so use the appropriate installer (not just pip). This [site](https://www.lfd.uci.edu/~gohlke/pythonlibs/) contains a long list of Windows installers.
 
 ## Usage
 
 usage: python sherbend.py \[-h] \[-eh] \[-ep] \[-pl] \[-d diameter | -dl dlayer] in_file out_file
 
 positional arguments:
-    
+
     in_file               Input Geopackage vector file to simplify (GPKG)
     out_file              Output Geopackage vector file simplified (GPKG)
 
@@ -37,28 +37,28 @@ optional arguments:
      -ep, --exclude_polygon   Exclude (delete) polygons exteriors below the minimum adjusted area (delete also any interior holes if present)
      -pl, --per_layer         Analyze topology per layer only; this means features from different layers can overlap after simplification
      -dl, --dlayer            Specify the diameter of the minimum adjusted area bend to simplify per layer name (ex: -dl Road=5,Hydro=7.5)
-     
+
 Some example:
 
 python sherbend.py -d 3 in_file.gpkg out\_file.gpkh
-   
+
    - Simplify each feature of each layer of the input file (in_file.gpkg) with a bend diameter below 3 (in map unit) and create the output file out_file.gpkg
-   
+
 python sherbend.py -d 3 -pl in\_file.gpkg out_file.gpkh
-   
+
    - Simplify each feature of each layer of the input file with a bend diameter below 3 and create the output file with each layer processed independently
-   
+
 python sherbend.py -d 3 -ep -eh in_file.gpkg out_file.gpkh
 
    - Simplify each feature of each layer of the input file with a bend diameter below 3 and create the output file; delete the polygons including all their interiors if the exterior is below a bend diameter of 3; also delete the polygon interiors if the interior is below a bend diameter of 3
-   
+
 python sherbend.py -dl Road=3,Lake=5,River=0 in_file.gpkg out_file.gpkh
 
    - Simplify each feature of the Road, Lake and River layers of the input file with a bend diameter below 3 for the Road layer, 5 for the Lake layer and do not simplify the River layer features but use them for analysing the topology; finally create the output file
 
-## Comparison with other simplication tool
+## Line Simplification versus Line Generalization
 
-Compared to the well known Douglas-Peucker algorithm, Sherbend will always try to remove (delete) unnecessary bends (line details) based on a bend diameter value.  Douglas-Peucker on the other hand will always try to preserve the maximum number of line details (line definition) with the minimum number of vertices.  Both algorithms can be complementary because Sherbend will not remove unnecessary vertices in the case of very high densities of vertices on a line.
+*Line Simplification* is the process of removing vertices in a line while trying to keep the maximum number of details within the line whereas *Line Generalization* is the process of removing meaningless (unwanted) details in a line usually for scaling down.  The well known Douglas-Peucker algorithm is a very good example of line simplification tool and Sherbend falls more in the category of line generalization tools. Keep in mind thay both algorithms can be complementary because Sherbend will not remove unnecessary vertices in the case of very high densities of vertices.  It may be a good idea to use Douglass Peucker before Sherbend in the case of very densed geometries.
 
 ## How it works
 
@@ -92,9 +92,9 @@ Note: For any given line or polygon ring, only those bends the simplification of
 ![Figure2](/image/figure2.png)
 
 ### Rule of thumb for the diameter
-Sherbend can be used for line simplifying often in the context of line generalization. The big question will often be what diameter should we use?  A good starting point is the cartographic rule of thumb -- the *.5mm on the map* -- which says that the minimumm distance between two lines should be greater than 0.5mm on a paper map. So to simplify (generalize) a line for representation at a scale of 1:50 000 for example a diameter of 25m should be a good starting point... 
+Sherbend can be used for line simplifying often in the context of line generalization. The big question will often be what diameter should we use?  A good starting point is the cartographic rule of thumb -- the *.5mm on the map* -- which says that the minimumm distance between two lines should be greater than 0.5mm on a paper map. So to simplify (generalize) a line for representation at a scale of 1:50 000 for example a diameter of 25m should be a good starting point...
 
-## Known issue with GeoPackage
+## Known issue with GeoPackage format
 
 The following problem can occur when using fiona libraries when creating GeoPackage.  It's a known issue, where the spatial index is not created for a specific layer.  The program still terminates with Exit Code 0 (meaning "success").  You can create the spatial index after in QGIS.
 
