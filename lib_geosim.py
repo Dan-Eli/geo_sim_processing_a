@@ -2,25 +2,28 @@
 # -=- encoding: utf-8 -=-
 
 """
-General classes and utilities needed for the GENeralization MEta ALgorithm (GENMTEAL) tool.
+General classes and utilities needed for the GeoSim.
 
 """
 
-import math
+import math, sys
 from shapely.geometry import Point, LineString, LinearRing, Polygon
 from shapely.ops import linemerge
+from collections.abc import Iterable
+from collections import OrderedDict
 import fiona
 
 try:
     from rtree import Rtree
+
     lib_Rtree = True
-except :
+except:
     # If Rtree is not installed
     lib_Rtree = False
     from shapely.strtree import STRtree
 
-class LineStringSc(LineString):
 
+class LineStringSc(LineString):
     """LineString specialization to be included in the SpatialContainer"""
 
     def __init__(self, coords):
@@ -37,13 +40,12 @@ class LineStringSc(LineString):
         # Update the coord attribute in the parent class
         LineString.coords.__set__(self, coords)
 
-        if self._sc_scontainer != None:    # Is the feature is a spatial container
+        if self._sc_scontainer != None:  # Is the feature is a spatial container
             # The coordinate has changed so update the bounding box in the spatial container
             self._sc_scontainer.update_spatial_index(self)
 
 
 class PointSc(Point):
-
     """LineString specialization to be included in the SpatialContainer"""
 
     def __init__(self, coords):
@@ -59,13 +61,12 @@ class PointSc(Point):
     def coords(self, coords):
         Point.coords.__set__(self, coords)
 
-        if self._sc_scontainer != None:  # Is the feature is a spatial container
+        if self._sc_scontainer is not None:  # Is the feature is a spatial container
             # The coordinate has changed so update the bounding box in the spatial container
             self._sc_container.update_bbox(self)
 
 
 class PolygonSc(Polygon):
-
     """Polygon specialization to be included in the SpatialContainer"""
 
     def __init__(self, exterior, interiors=None):
@@ -83,7 +84,7 @@ class PolygonSc(Polygon):
 
     @exterior.setter
     def exterior(self, exterior):
-        raise GeoSimException ("Cannot update the exterior coordinates of a polygon")
+        raise GeoSimException("Cannot update the exterior coordinates of a polygon")
 
     @interiors.setter
     def interiors(self, interiors):
@@ -111,6 +112,23 @@ class GenUtil:
     DEGREE = 'Degree'
 
     @staticmethod
+    def make_iterable(iter_feature):
+        """Test if the parameter is iterable; if not make it iterable by creating a tuple of one element
+
+        *Parameters*:
+            - iter_feature: Object to test for iterability
+
+        *Returns*:
+            - Iterable object
+
+        """
+
+        if not isinstance(iter_feature, Iterable):
+            iter_feature = (iter_feature,)
+
+        return iter_feature
+
+    @staticmethod
     def distance(p1, p2):
         """Calculate the euclidean distance between 2 points
 
@@ -126,7 +144,7 @@ class GenUtil:
         return math.sqrt((p2[0] - p1[0]) ** 2.0 + (p2[1] - p1[1]) ** 2.0)
 
     @staticmethod
-    def compute_angle (p1, p2, p3, type=DEGREE):
+    def compute_angle(p1, p2, p3, type=DEGREE):
         """
         Function to calculate angle between two vectors.
         """
@@ -191,7 +209,7 @@ class GenUtil:
 
         if orient > 0.:
             orient = 1
-        elif orient< 0.:
+        elif orient < 0.:
             orient = -1
         else:
             orient = 0
@@ -369,7 +387,7 @@ class GenUtil:
                             schema=geo_content.schemas[layer_name]) as dest:
                 out_features = []
                 for feature in (feature for feature in geo_content.out_features
-                                if feature.sb_layer_name==layer_name):
+                                if feature.sb_layer_name == layer_name):
                     # Transform the Shapely features for fiona writing
                     if feature.geom_type == GenUtil.POINT:
                         coordinates = (feature.x, feature.y)
@@ -380,7 +398,7 @@ class GenUtil:
                     elif feature.geom_type == GenUtil.POLYGON:
                         exterior = list(feature.exterior.coords)
                         interiors = [list(interior.coords) for interior in feature.interiors]
-                        coordinates = [exterior]+interiors
+                        coordinates = [exterior] + interiors
                         geo_content.out_nbr_polygons += 1
                         geo_content.out_nbr_holes += len(interiors)
 
@@ -408,8 +426,8 @@ class GenUtil:
         """
 
         line_schema = landmarks_schema = {'geometry': 'LineString',
-                                           'properties': OrderedDict([])
-                                         }
+                                          'properties': OrderedDict([])
+                                          }
 
         # Loop over each layer and write the content of the file
         for layer_name in geo_content.layer_names:
@@ -420,7 +438,7 @@ class GenUtil:
                             schema=line_schema) as dest:
                 out_features = []
                 for feature in (feature for feature in geo_content.out_features
-                                if feature.sb_layer_name==layer_name):
+                                if feature.sb_layer_name == layer_name):
                     # Transform the Shapely features for fiona writing
                     if feature.geom_type == GenUtil.POINT:
                         coordinates = (feature.x, feature.y)
@@ -431,7 +449,7 @@ class GenUtil:
                     elif feature.geom_type == GenUtil.POLYGON:
                         exterior = list(feature.exterior.coords)
                         interiors = [list(interior.coords) for interior in feature.interiors]
-                        coordinates = [exterior]+interiors
+                        coordinates = [exterior] + interiors
                         geo_content.out_nbr_polygons += 1
                         geo_content.out_nbr_holes += len(interiors)
 
@@ -480,7 +498,7 @@ class SpatialContainer(object):
         self._features = {}  # Container to hold the features
         self._bbox_features = {}  # Container to hold the bounding boxes
 
-    def adjust_bbox(self, bounds, delta = GenUtil.ZERO):
+    def adjust_bbox(self, bounds, delta=GenUtil.ZERO):
         """Adjust the bounding box by increasing by a very small delta
 
         Parameters:
@@ -515,7 +533,7 @@ class SpatialContainer(object):
         if issubclass(feature.__class__, (PointSc, LineStringSc, PolygonSc)):
             pass
         else:
-            raise GenException('Unsupported class: {}'.format(str(feature.__class__)))
+            raise GeoSimException('Unsupported class: {}'.format(str(feature.__class__)))
 
         bounds = feature.bounds
 
@@ -637,9 +655,9 @@ class SpatialContainer(object):
         new_x_min, new_y_min, new_x_max, new_y_max = new_bbox[0], new_bbox[1], new_bbox[2], new_bbox[3]
 
         if old_x_min <= new_x_min and \
-           old_y_min <= new_y_min and \
-           old_x_max >= new_x_max and \
-           old_y_max >= new_y_max:
+                old_y_min <= new_y_min and \
+                old_x_max >= new_x_max and \
+                old_y_max >= new_y_max:
             # Nothing to do new bounding box is completely included into the old one
             pass
         else:
@@ -682,7 +700,7 @@ class SpatialContainer(object):
         remove_features = tmp_remove_features
 
         # Extract the features by bounds if requested
-        if (bounds != None):
+        if bounds is not None:
             # Extract features by bounds
             keys = (key for key in self._r_tree.intersection(bounds) if key not in remove_features)
             features = [self._features[key] for key in keys if key in self._features]
@@ -730,7 +748,7 @@ class SpatialContainerSTRtree(object):
         self._features = {}  # Container to hold the features
         self._bbox_features = {}  # Container to hold the bounding boxes
 
-    def adjust_bbox(self, bounds, delta = GenUtil.ZERO):
+    def adjust_bbox(self, bounds, delta=GenUtil.ZERO):
         """Adjust the bounding box by increasing by a very small delta
 
         Parameters:
@@ -787,7 +805,7 @@ class SpatialContainerSTRtree(object):
 
             # Transform the feature as its corresponding bounding box... to simulate the Rtree class
             xmin, ymin, xmax, ymax = bounds
-            tmp_feature = LineString(((xmin,ymin),(xmin,ymax),(xmax,ymax), (xmax,ymin), (xmin,ymin)))
+            tmp_feature = LineString(((xmin, ymin), (xmin, ymax), (xmax, ymax), (xmax, ymin), (xmin, ymin)))
             tmp_feature._sc_id = feature._sc_id
             tmp_features.append(tmp_feature)
 
@@ -824,7 +842,6 @@ class SpatialContainerSTRtree(object):
         """
 
         raise GeoSimException("Cannot delete feature with shapely STRtree")
-
 
     def del_features(self, features):
         """Delete a list of features in the spatial container
@@ -864,9 +881,9 @@ class SpatialContainerSTRtree(object):
         new_x_min, new_y_min, new_x_max, new_y_max = new_bbox[0], new_bbox[1], new_bbox[2], new_bbox[3]
 
         if old_x_min <= new_x_min and \
-           old_y_min <= new_y_min and \
-           old_x_max >= new_x_max and \
-           old_y_max >= new_y_max:
+                old_y_min <= new_y_min and \
+                old_x_max >= new_x_max and \
+                old_y_max >= new_y_max:
             # Nothing to do new bounding box is completely included into the old one
             pass
         else:
@@ -918,997 +935,601 @@ class SpatialContainerSTRtree(object):
 
         return
 
-class ChordalAxis2(object):
-
-    def __init__(self, lst_triangles, search_tolerance=GenUtil.ZERO):
-
-        self.coco123
-        self._load_triangles(lst_triangles)
-
-        self._build_triangle_clusters()
-
-
-    def _load_triangles(self, lst_triangles):
-
-        lst_triangles_sc = []
-        for triangle in lst_triangles:
-            triangle_sc = LineStringSc(triangle.coords)
-            triangle_sc._sc_processed = False
-            lst_triangles_sc.append(triangle_sc)
 
 class ChordalAxis(object):
-    """This class is creating  a skeleton and identify bottleneck based on the Chordal Axis Transform CAT
 
-       The CAT is very interesting as it simulate the skeleton created by the Medial Axis Transform (MAT).
+    ISOLATED = 0
+    TERMINAL = 1
+    SLEEVE = 2
+    JUNCTION = 3
 
-       The CAT is created using the output of the Constrained Delanauy Triangulation (CAT).
-       The class containes only 2 public method
-          - get_skeleton: To extract the skeleton (line network)
-          - get_triangle: To extract the original triangles. Each triangle containing a the property "type"
-                          which can take 2 values:
-                              - bottleneck: If the width of the triangle is below the minimal width
-                              - other:  If the width of the trioangle is over the minimal width
+    def __init__(self, lst_triangle, search_tolerance=GenUtil.ZERO):
+        """Constuctor of the ChordalAxis class
 
-        This class also use the class _Triangle and _LineSegments
+        *Parameters*:
+            - lst_triangle: List of LineString triangle
+            - search_tolerance: float for the zero value approximation
 
-       For more information of the Chordal Axis Transform refer to:
-          Rectification of the Chordal Axis Transform and a new criterion for shape decompositio,  Laksham Prasad,
-          12 International Conference on Discrte Geometry for Computer Imagery, Poitiers, France, 13-15 April 2005
-    """
-    CODE = 'code'
-    WIDTH = 'width'
-    CENTER_LINE = 'center_line'
-    BOTTLENECK = 'bottleneck'
-    OTHER = 'other'
-
-    def __init__(self, triangles, search_tolerance=GenUtil.ZERO):
-        """Constructor of the class
-
-        Parameters:
-            - polygon: PolygonSc to process
-            - triangles: List of LineString. The line represent the triangles of a Constriant Delanuay Triangulation (CDT)
-                         Each triangle is composed of 4 non colinear vertice
-            - minimal_width: Float used to prune the skeleton outputted by the Chordal Axis Transform and to identify
-                             bottleneck triangles
-            - search_tolerance: Search tolerance can vary depending on the dynamic of the data set from lat-lon to Lambert conformal
-
-        Return value: None
-        """
-        self.s_cont_triangles = SpatialContainer()
-        self._search_tolerance = search_tolerance
-#        self._process_polygon(polygon)
-        self._load_triangles(triangles)
-
-#        _Triangle.line_segments = self.line_segments
-#        _Triangle.perimeters = self.perimeter_distance
-
-        self._build_skeleton()
-#        self._prune_skeleton()
-
-    def _process_polygon(self, polygon):
-        """Process a polygon to create the object property line_segments and perimeter_distance
-
-        Parameters:
-          - PolygonSc to process
-
-        Return value: None
-        """
-
-        # Create one list containing the exterior ring plus the interior rings (if any)
-        rings = [polygon.exterior]
-        for ring in polygon.interiors:
-            rings.append(ring)
-
-        # _line_Segments object are used to calculate the distance from a point to the different line segment of the polygon
-        self.line_segments = _LineSegments(rings, self._search_tolerance)
-
-        # Perimeter distance objects are used to calculate the shortest distance between 2 vertice on a ring
-        self.perimeter_distance = PerimeterDistance(rings, self._search_tolerance)
-
-    def _load_triangles(self, triangles):
-        """Load the triangles
-
-        Parameters:
-            - List of LineString.  Each LineString is composed of 4 non colinear vertice forming a triangle
-
-        Return value: None
-        """
-
-        for tri in triangles:
-            triangle = _Triangle(list(tri.coords))
-            self.s_cont_triangles.add_feature(triangle)
-
-    def _build_skeleton(self):
-        """Build the Chordal Axis Transform skeleton with the triangles
-
-        Parameters: None
-
-        Ruturn value: None
+        *Returns*:
+            -
 
         """
 
-        for triangle in self.s_cont_triangles.get_features():
-            triangle.get_centre_line()
+        self.search_tolerance = search_tolerance
 
-    def _prune_skeleton(self):
-        """Prune the noise of Chordal Axis Transform skeleton to remove detail below the minimum width
+        self._validate_triangles(lst_triangle)
 
-        Remove the small lines of the skeleton.  In the chordal axis tranform each junction triangles
-        is a bifurcation (skeleton splitting).  The method is removing noisy skeleton arm that are
-        below a treshold.  We use the distance along the perimeter to determine if an arm must be pruned
+        # Transform the Triangle LineString into _TriangleSc to be loaded in SpatialContainer
+        for i, triangle in enumerate(lst_triangle):
+            triangle = _TriangleSc(triangle.coords)
+            lst_triangle[i] = triangle
 
-        Refer to the original paper for more details
+        # Create spatial container
+        self.s_container = SpatialContainer()
 
-        Parameters: None
+        # Load triangles
+        self.s_container.add_features(lst_triangle)
 
-        Return value: None
+        # Load some class viriables
+        _TriangleSc.s_container = self.s_container
+        _TriangleSc.search_tolerance = self.search_tolerance
 
-        """
+        # Build the cluster (group of triangles part of a polygon)
+        self.triangle_clusters = self._build_clusters()
 
-        # Process all the triangles
-        for triangle in self.s_cont_triangles.get_features():
-            if triangle.get_nbr_internal() == 3:
-                # Only process Junction triangle
-                side_demoted = []  # Contains the side number of the triangle that will be pruned
-                for i in range(3):
-                    p0 = triangle.coords[i]
-                    p1 = triangle.coords[(i + 1) % 3]
-                    # Check if the perimeter distance is below the minimal width
-                    extremity = self.perimeter_distance.is_extremity(p0, p1, self._minimal_width)
-                    if extremity:
-                        # The side/skeleton must be pruned
-                        lst_sub_coords = self.perimeter_distance.get_sub_perimeter(p0, p1)
-                        # Creation of a polygon with the vertice included in the perimeter
-                        extremity_polygon = PolygonSc(lst_sub_coords)
-                        centroid_coord = triangle.get_centroid()  # Centroid of the triangle in hand
-                        centroid_point = Point(centroid_coord)
-                        # Make sure that the perimeter polygon do not contain the triangle in hand
-                        if (extremity_polygon.disjoint(centroid_point)):
-                            side_demoted.append(i)
+        self.nbr_polygons = len(self.triangle_clusters)
+        self.nbr_triangles = len(lst_triangle)
 
-                            # All the triangle located inside the polygon must have there skeleton removed
-                            # Proceed in 2 phases
-                            # First phase: Bounding box search
-                            potential_triangles = self.s_cont_triangles.get_features(bounds=extremity_polygon.bounds)
-                            for potential_triangle in potential_triangles:
-                                centroid_coord = potential_triangle.get_centroid()
-                                centroid_point = Point(centroid_coord)
-                                # Second phase spatial search
-                                if (extremity_polygon.contains(centroid_point)):
-                                    # Triangle pruned from its triangle
-                                    potential_triangle.del_centre_line()
+        return
 
-                # If some side of the tirangle were demoted once have to recalculate the skeleton for this triangle
-                nbr_side_demoted = len(side_demoted)
-                if nbr_side_demoted >= 2:
-                    # If 2 or 3 side were demoted we also remove the skeleton from this triangle
-                    triangle.del_centre_line()
-                else:
-                    if nbr_side_demoted == 1:
-                        # The center_line of the triangle has changed
-                        triangle.demote_junction(side_demoted[0])
-                    else:
-                        # Nothing has changed on the state of the triangle
-                        pass
+    def _validate_triangles(self, lst_triangle):
+        """Validate triangles geometry
 
-    def get_skeletton(self, noise=0.):
-        """Extract the Chordal Axis Transform skeleton from a constrained Delanauy trianulation
+        *Parameters*:
+            - lst_triangle: List of LineString of triangle
 
-        Parameters: None
-
-        Return value:
-            - List of LineString of the skeleton of the polygon
-        """
-
-        center_lines = []
-        for triangle in self.s_cont_triangles.get_features():
-            center_lines += triangle.get_centre_line()
-
-        # Merge the center line
-        merged_center_lines = linemerge(center_lines)
-        if merged_center_lines.geom_type == GenUtil.LINE_STRING:
-            center_lines = [merged_center_lines]
-        else:
-            center_lines = [center_line for center_line in merged_center_lines]
-
-        # Transform LineString into LineStringSc
-        tmp_center_lines = []
-        for center_line in center_lines:
-            tmp_center_lines.append(LineStringSc(center_line.coords))
-        center_lines = tmp_center_lines
-
-        if noise > 0.:
-            center_lines = self._remove_noise(center_lines, noise)
-
-        return center_lines
-
-    def get_triangles(self):
-        """Extract the triangles from the constrained delanauy triangulation
-
-        Parameters: None
-
-        Return value:
-            - List of the LineString of 4 vertice each.
-              Each triangle also have the following ma_properties
-                  - type: The type of triangle can take 2 values:
-                          - bottleneck: If the width of the triangle is below the minimal widt
-                          - other: If the width of the triangle is over the minimal width
-                  - width: The width of the triangle.  If the width is below the minimal width the
-                           exact value of width is return; otherwise the value 1.0E+99 is output. The real width
-                           of each triangle is not calculated for a performance reason.
-
-        """
-        triangles = []
-        for triangle in self.s_cont_triangles.get_features():
-            (category, width) = triangle.get_category(self._minimal_width)
-            tri = triangle.cloner()  # Create a copy of the triangle not a reference
-            tri.ma_properties[ChordalAxis.CODE] = category
-            tri.ma_properties[ChordalAxis.WIDTH] = width
-            tri.ma_properties[ChordalAxis.CENTER_LINE] = triangle.get_centre_line()
-            triangles.append(tri)
-
-        return triangles
-
-
-    def  _remove_noise(self, center_lines, noise):
-        """remove the noise (small lines) in the skeleton
-
-        Parameters:
-            center_lines: List of LineString
-
-        Return:
-            List of LineString
-        """
-
-#        a = LineString(((0,0),(15,0)))
-#        b = LineString(((15,0),(30,0)))
-#        c = LineString(((30,0),(30,5)))
-#        d = LineString(((30,0),(45,0)))
-#        e = LineString(((45,0),(60,0)))
-#        center_lines = [a,b,c,d,e]
-
-        # Load the features in the spatial container (accelerate the search)
-        s_container = SpatialContainer()
-        for center_line in center_lines:
-            center_line.sb_geom_type = GenUtil.LINE_STRING
-            s_container.add_feature(center_line)
-
-        # Build topology. For each create list of connecting lines
-        for line in center_lines:
-            p_start = line.coords[0]
-            p_end = line.coords[-1]
-            b_box = GenUtil.build_bounding_box(self._search_tolerance, p_start)
-            lines_b_box = s_container.get_features(b_box, remove_features=[line])
-            line.start_lines = []
-            for line_b_box in lines_b_box:
-                if line.touches(line_b_box):
-                    line.start_lines.append(line)
-            b_box = GenUtil.build_bounding_box(self._search_tolerance, p_end)
-            lines_b_box = s_container.get_features(b_box, remove_features=[line])
-            line.end_lines = []
-            for line_b_box in lines_b_box:
-                if line.touches(line_b_box):
-                    line.end_lines.append(line)
-
-        lines = s_container.get_features()
-        center_lines = []
-        for line in lines:
-            keep_line = True
-            if line.length <= noise:
-                # Only line below noise length are candidate to be removed
-                if len(line.start_lines) == 0 and len(line.end_lines) == 0:
-                    # Isolated line . Nothing to do
-                    pass
-                else:
-                    if len(line.start_lines) != 0:
-                        tmp_lines = line.start_lines
-                    else:
-                        tmp_lines = line.end_lines
-                    for tmp_line in tmp_lines:
-                        if len(tmp_line.start_lines) == 0 or len(tmp_line.end_lines) == 0:
-                            keep_line = False
-                            break
-            if keep_line:
-                center_lines.append(line)
-            else:
-                print ("Line deleted")
-
-        # Merge the center line
-        merged_center_lines = linemerge(center_lines)
-        if merged_center_lines.geom_type == GenUtil.LINE_STRING:
-            center_lines = [merged_center_lines]
-        else:
-            center_lines = [center_line for center_line in merged_center_lines]
-
-
-        return center_lines
-
-
-class _Triangle(LineStringSc):
-    """Calculates the
-    """
-
-    SUPERIMPOSED = 'superimposed'
-    INTERNAL = 'internal'
-
-    line_segments = None
-    perimeters = None
-
-    def __init__(self, lst_coords):
-        if len(lst_coords) == 4:
-            super().__init__(lst_coords)
-            self.sb_geom_type = GenUtil.LINE_STRING
-            self._nbr_internal = None  #
-            self._centre_lines = None
-            self._side_type = None
-            self._category = None
-            self._mid_triangle = None
-        else:
-            raise Exception("A triangle must have 4 and only 4 coordinates")
-
-    def _get_obtuse_angle(self):
-        """Return the vertice number (0, 1, 2) of the obtuse angle of the triangle
-
-        Parameters: None
-
-        Return value:
-            - integer: Vertice number of the obtuse angle or None if there is not obtuse angle
-
-        """
-
-        acute_angle = None
-
-        for i in range(3):
-            coords = list(self.coords)
-            p0 = coords[(i - 1) % 3]
-            p1 = coords[(i) % 3]
-            p2 = coords[(i + 1) % 3]
-            angle = GenUtil.compute_angle(p0, p1, p2)
-            if angle > 90.:
-                # There is only angle greater than 90 in a triangle so break after
-                acute_angle = i
-                break
-
-        return acute_angle
-
-    def _is_acute_triangle(self):
-        """Check for sleeve triangle, if the triangle is acute or obtuse
-
-        To be considered acute, a sleeve triangle must have the 2 angles of the side superimposed with the polygon
-        below 90 degrees.
-
-        This method is also calculating the heigth (which is the width of the bottleneck) of the triangle using the
-        Heron formula
-
-        Parameters: None
-
-        Return value:
-            boolean: True: The sleeve polygon is acute
-                     False: The sleeve polygon is not acute
-
-        """
-
-        for i, side_type in enumerate(self._side_type):
-            if side_type == _Triangle.SUPERIMPOSED:
-                superimposed = i
-
-        p0_base = self.coords[superimposed % 3]
-        p1_base = self.coords[(superimposed + 1) % 3]
-        p_summit = self.coords[(superimposed + 2) % 3]
-
-        # Extract the side of the triangle
-        a = GenUtil.distance(p0_base, p1_base)
-        b = GenUtil.distance(p1_base, p_summit)
-        c = GenUtil.distance(p0_base, p_summit)
-
-        # Check if it's side a has an obtuse angle
-        angle_p1 = GenUtil.compute_angle(p_summit, p0_base, p1_base)
-        angle_p2 = GenUtil.compute_angle(p0_base, p1_base, p_summit)
-
-        # Accute triangle
-        # Take the height of the triangle as the bottleneck which is a better
-        # evaluation of the width than the smallest side
-        # Calculates the area of the triangle using the Heron formula
-        p = (a + b + c) / 2.  # Calculates the half perimeter
-        # Now use the Heron formula  A = sqrt(s(s-a)(s-b)(s-c)) where s = (a+b+c)/2
-        area = (p * (p - a) * (p - b) * (p - c)) ** 0.5
-        base = a
-
-        # Calculate the height using area = (base*height)/2 ===> height= (2*area)/base
-        self._height = (2. * area) / base
-
-        if (angle_p1 < 90. and angle_p2 < 90.):
-            acute = True
-        else:
-            acute = False
-
-        return acute
-
-    def get_centroid(self):
-        """Calculate the position of the baricenter of the triangle
-
-        The gravity centre is always 2/3 the distance between the middle of one side and the opposite angle
-
-        Parameters: None
-
-        Return value
-            Tuple of (x,y) float representing the position of the centroid
-
-        """
-
-        coords = list(self.coords)
-        mid_point = GenUtil.mid_point(coords[0], coords[1])
-        centroid = GenUtil.rescale_vector(mid_point, coords[2], 1. / 3.)
-
-        return centroid
-
-    def demote_junction(self, side_number):
-        """Demote a junction polygon if the skeleton of one of the side is considered as noise and calculate a new skeleton
-
-        The new skeleton is calculated by joining to 2 remaining mid side
-
-        Parameter:
-            side_number: The side number of the triangle to demote. Value [0..2]
-        """
-
-        coords = list(self.coords)
-        p0 = coords[(side_number + 1) % 3]
-        p1 = coords[(side_number + 2) % 3]
-        p2 = coords[(side_number + 3) % 3]
-
-        mid_p0_p1 = GenUtil.mid_point(p0, p1)
-        mid_p1_p2 = GenUtil.mid_point(p1, p2)
-
-        centre_line = LineStringSc([mid_p0_p1, mid_p1_p2])
-
-        self._centre_lines = [centre_line]
-
-    def del_centre_line(self):
-        """Delete the center line for this triangle
-
-        Parameters: None
-
-        Return value: None
-
-        """
-
-        self._centre_lines = []
-
-    def get_centre_line(self):
-        """Calculates and extract the center line of the triangle
-
-        The center line depends of the type of triangle
-            Terminal triangle: No center line
-            Sleeve triangle: Joining the mid side of the internal side
-            Junction triangle:  If the triangle is obtuse:
-                                           - find the opposite side of the obtuse angle ()
-                                           - creates 2 lines from the opposite side to the mid point of the 2 other sides
-                                If the triangle is acute:
-                                        - calculate the baricenter
-                                        - creates 3 lines from the mid side to the baricenter
-        """
-
-        if self._centre_lines is None:
-            # Implement late calculation
-            self._centre_lines = []  # List of the centre lines
-            mid_side_points = []  # List of the mid point on each side of the triangle
-            internal_sides = []  # List of the number of the internal side
-            external_sides = []  # List of the number of the external side
-
-            nbr_adjacent = self.get_nbr_adjacent()
-
-            coords = list(self.coords)
-            for i in range(3):
-                mid_side_points.append(GenUtil.mid_point(coords[i], coords[i + 1]))
-                if self._side_type[i] == _Triangle.INTERNAL:
-                    internal_sides.append(i)
-                else:
-                    external_sides.append(i)
-
-            # Process each case depending on the number of internal side of the triangle
-            if nbr_adjacent == 0:
-                # Degenerated polygon with one triangle no skeleton line added
-                pass
-
-            if nbr_adjacent == 1:
-                # Terminal triangle add line from the extremity of the triangle up to mid opposite side
-                if internal_sides[0] == 0:
-                    coords_line = [coords[2], mid_side_points[0]]
-                if internal_sides[0] == 1:
-                    coords_line = [coords[0], mid_side_points[1]]
-                if internal_sides[0] == 2:
-                    coords_line = [coords[1], mid_side_points[2]]
-
-                self._centre_lines.append(LineStringSc(coords_line))
-
-            if nbr_adjacent == 2:
-                # Sleeve triangle skeleton added between the mid point of each chord
-                internal_side0 = internal_sides[0]
-                internal_side1 = internal_sides[1]
-                self._centre_lines.append(LineStringSc([mid_side_points[internal_side0], mid_side_points[internal_side1]]))
-                self._mid_triangle = GenUtil.mid_point(mid_side_points[internal_side0], mid_side_points[internal_side1])
-
-            if nbr_adjacent == 3:
-                # Junction triangle skeleton added.
-                obtuse_angle = self._get_obtuse_angle()
-                if (obtuse_angle is None):
-                    # With an acute triangle a mid point is calculated in the middle of the triangle
-                    centroid = self.get_centroid()
-                    self._mid_triangle = centroid
-                    for mid_side_point in mid_side_points:
-                        self._centre_lines.append(LineStringSc([centroid, mid_side_point]))
-                else:
-                    # With an obtuse triangle the mid point is placed on the sided opposite to the obtuse angle
-                    opposite_side = (obtuse_angle + 1) % 3
-                    left_side = (opposite_side + 1) % 3
-                    right_side = (opposite_side - 1) % 3
-                    self._mid_triangle = mid_side_points[opposite_side]
-                    self._centre_lines.append(LineStringSc([mid_side_points[opposite_side], mid_side_points[left_side]]))
-                    self._centre_lines.append(LineStringSc([mid_side_points[opposite_side], mid_side_points[right_side]]))
-        else:
-            # Centre line was already calculated... nothing to do
-            pass
-
-        return self._centre_lines
-
-    def get_nbr_adjacent(self):
-        """Extract the number of side of the triangle which are adjacent to another polygon.
-
-        Three scenarios are possible 0, 1, 2 ou 3 sides completely inside the polygon:
-            3: The triangle is completely inside. This is called a Junction triangle
-            2: The Triangle as on side that lies on the polygon. This is called a Sleeve triangle
-            1: The Triangle has only one side completely inside the polygon. This is called a Terminal triangle.
-            0: Special case where the polygon has only 3 sides
-
-        Return value:
-            - Number of side completely inside the polygon. Value between 0 and 3.
-        """
-
-        if self._nbr_internal is None:
-            self._side_type = []
-            self._nbr_adjacent = 0
-            coords = list(self.coords)
-            for i in range(3):
-                tmp_line = LineString((coords[i], coords[i+1]))
-                mid_point = tmp_line.interpolate(.5, normalized=True)
-                bbox = GenUtil.build_bounding_box(GenUtil.ZERO, mid_point.bounds)
-                adjacents = list(self._sc_scontainer.get_features(bounds=bbox, remove_features=[self]))
-                tmp_superimposed = True
-                for adjacent in adjacents:
-                    if mid_point.distance(adjacent) <= GenUtil.ZERO:
-                        tmp_superimposed = False
-                        break
-                if tmp_superimposed:
-                    self._side_type.append(_Triangle.SUPERIMPOSED)
-                else:
-                    self._side_type.append(_Triangle.INTERNAL)
-                    self._nbr_adjacent += 1
-        else:
-            # nbr_internal has already been calculated... nothing to do
-            pass
-
-        return self._nbr_adjacent
-
-    def get_category(self, minimal_width):
-        """Determines if a triangle is a type bottleneck (to narrow) or a polygon other
-
-        Parameters:
-            - minimal_width: Float of the minimal width to check
-
-        Return value:
-            Tuple of 2 values
-                - The category of the triangle: bottleneck or other
-                - If the category is bottleneck the width of the bottle if it is below the minimal width
-
-        """
-        if self._category is None:
-
-            if len(self._centre_lines) == 0:
-                # If there is no center line the polygon is of type other
-                self._category = ChordalAxis.OTHER
-            else:
-                nbr_internal = self.get_nbr_internal()
-                if nbr_internal == 2 and self._is_acute_triangle():
-                    # The triangle is a sleeve triangle and is acute
-                    # In this case the height of the triangle is also the width of the bottleneck
-                    if self._height < minimal_width:
-                        neighbour = True
-                        self._width = self._height
-                    else:
-                        neighbour = False
-                else:
-                    # Check through a spatial search if there are any neighbous
-                    (neighbour, self._width) = _Triangle.line_segments.check_chordal_axis(minimal_width / 2.,
-                                                                                          self._mid_triangle)
-                if (neighbour):
-                    extremity = False
-                    for i, type in enumerate(self._side_type):
-                        if type == _Triangle.INTERNAL:
-                            coord0 = self.coords[i]
-                            coord1 = self.coords[i + 1]
-                            # Check if the triangle is located near the extremity of the polygon
-                            # A triangle near an extremity of a polygon is not considered as a bottleneck
-                            extremity = extremity or _Triangle.perimeters.is_extremity(coord0, coord1, minimal_width)
-                    if extremity:
-                        self._category = ChordalAxis.OTHER
-                    else:
-                        self._category = ChordalAxis.BOTTLENECK
-                else:
-                    self._category = ChordalAxis.OTHER
-
-            if self._category != ChordalAxis.BOTTLENECK:
-                self._width = None
-
-        return self._category, self._width
-
-
-class _LineSegments(object):
-    """This class allows to make specific search in a list of line segment
-
-    """
-
-    ID_RING = 'id_ring'
-
-    def __init__(self, rings, search_tolerance):
-        """Load the line segment in the spatial container in the form of 2 vertice line segment
-
-        Parameters:
-            - rings: List of MA_LineString to store in the spatial container
-            - search_tolerance: Search tolerance can vary depending on the dynamic of the data set from lat-lon to Lambert conformal
-
-        Return value: None
-
-        """
-
-        self._search_tolerance = search_tolerance
-        self._s_container = SpatialContainer()
-
-        for id_ring, ring in enumerate(rings):
-            lst_coords = list(ring.coords)
-            nbr_coord_ring = len(lst_coords)
-            # Split the line string into line segment of 2 vertice
-            for j in range(nbr_coord_ring - 1):
-                p0 = lst_coords[j]
-                p1 = lst_coords[j + 1]
-                line = LineStringSc((lst_coords[j], lst_coords[j+1]))
-#                line.sb_geom_type = GenUtil.LINE_STRING
-                #                line.ma_properties[_LineSegments.ID_RING] = id_ring
-                self._s_container.add_feature(line)
-
-    def is_line_segment_present(self, p0, p1):
-        """Check if a line segment is located at a specific place
-
-        Parameters: p0, p1: Tuple of x,y coordinates
-
-        Return value
-            - boolean: True: There is a line segement there
-                       False: There is no line segment there
-
-        """
-
-        # Find the mid point between p0 and p1
-        mid_p0_p1 = GenUtil.mid_point(p0, p1)
-        # Search for line segment there
-        b_box = GenUtil.build_bounding_box(self._search_tolerance, mid_p0_p1)
-        lines = self._s_container.get_features(bounds=b_box)
-
-        present = False
-        for line in lines:
-            # Check if the first/vertice of the line correpond to the p1, p2 of the triangle if so
-            # there is exactly one line there
-            line_coords = list(line.coords)
-            if ((GenUtil.distance(line_coords[0], p0) < GenUtil.ZERO and
-                 GenUtil.distance(line_coords[1], p1) < GenUtil.ZERO) or
-                    (GenUtil.distance(line_coords[0], p1) < GenUtil.ZERO and
-                     GenUtil.distance(line_coords[1], p0) < GenUtil.ZERO)):
-                present = True
-                break
-
-        return present
-
-    def check_chordal_axis(self, tolerance, target_coord):
-        """Check at a specific location if a chordal axis is found within a certain tolerance
-
-        The chordal is calculated with the following steps:
-            - Find all the line segment within a certain tolerance
-            - Find the first closest line segment and the position p0 along the line
-            - Find the second closest line segment and the position p1 along the line
-            - p0 and p1 must form alomost a straight line
-            - distance (p0,p1) must be below the tolerance
-
-        Parameters:
-            - tolerance: Search tolerance
-            - target_coords: Search location, tuple of x,y coordinate
-        """
-
-        min_distance_0 = 1.0E+99
-        min_distance_1 = 1.0E+99
-        chord_distance = 1.0E+99
-
-        # Extract the line segment near the search location
-        b_box = GenUtil.build_bounding_box(tolerance, target_coord)
-        lines = self._s_container.get_features(bounds=b_box)
-        if (len(lines) == 1):
-            # We need at least 2 lines otherwise there is no chrdal axes
-            lines = []
-        ref_line = None
-        for line in lines:
-            # First pass find the closest line segment
-            line_coords = list(line.coords)
-            distance = GenUtil.distance_line_point(line_coords[0], line_coords[1], target_coord)
-            if distance < min_distance_0:
-                min_distance_0 = distance
-                ref_line = line
-
-        if ref_line is not None:
-            # Extract the coordinate on the line
-            target_point = Point(target_coord)
-            distance_lr = ref_line.project(target_point)
-            point_on_line_0 = ref_line.interpolate(distance_lr)
-            coord_on_line_0 = point_on_line_0.coords[0]
-
-            for line in lines:
-                # Second pass find the second closest line
-                if line != ref_line:
-                    line_coords = list(line.coords)
-                    distance = GenUtil.distance_line_point(line_coords[0], line_coords[1], target_coord)
-                    distance_lr = line.project(target_point)
-                    point_on_line_1 = line.interpolate(distance_lr)
-                    coord_on_line_1 = point_on_line_1.coords[0]
-                    angle = GenUtil.compute_angle(coord_on_line_0, target_coord, coord_on_line_1)
-                    # Check that p0 and p1 formed almost a straight line
-                    if (angle > 120.):
-                        distance = GenUtil.distance(coord_on_line_0, coord_on_line_1)
-                        if (distance < chord_distance):
-                            chord_distance = distance
-
-        # Check that the chord distance is within the tolerance
-        if chord_distance < tolerance * 2.:
-            neighbours = True
-        else:
-            neighbours = False
-            chord_distance = 1.0E+99
-
-        return (neighbours, chord_distance)
-
-
-class PerimeterDistance(object):
-    """This class allows to calculate the distance between 2 coordinates on a line closed string
-
-
-    Internal data structure are maintained to accelerate the computation
-
-    """
-
-    _ID_RING = 'id_ring'
-    _ID_COORD = 'id_coord'
-
-    def __init__(self, rings, search_tolerance):
-        """Load the internal structure with the ring information
-
-        Parameters:
-           - rings: List of closed LineStringSc of a polygon
-           - search_tolerance: Search tolerance can vary depending on the dynamic of the data set from lat-lon to Lambert conformal
-
-        Return value: None
-        """
-
-        self._search_tolerance = search_tolerance
-
-        for ring in rings:
-            if (isinstance(ring, LinearRing)):
-                pass
-            else:
-                raise Exception("Can only work on LineStringSc")
-
-        self.lst_cumm_distance = []
-        self.lst_lst_coords = []
-        self.s_cont_points = SpatialContainer()
-
-        for id_ring, ring in enumerate(rings):
-            lst_coords = list(ring.coords)
-            self._init_load_points(id_ring, lst_coords)
-            self._init_load_cum_distance(lst_coords)
-
-    def _init_load_points(self, id_ring, lst_coords):
-        """Load all the point in a spatial container for fast point search
-
-        Parameters:
-            - id_rings: Ring ID
-            - lst_coords: List of coordinates to load in the spatial container
-
-        Return value:
+        *Returns*:
             - None
 
         """
 
-        nbr_coords = len(lst_coords)
-        for i in range(1, nbr_coords):
-            point = PointSc(lst_coords[i])
-            point.sb_geom_type = GenUtil.POINT
-            point.sb_id_ring = id_ring
-            point.sb_id_coord = i
-#            point.ma_properties[PerimeterDistance._ID_RING] = id_ring
-#            point.ma_properties[PerimeterDistance._ID_COORD] = i
-            self.s_cont_points.add_feature(point)
+        if len(lst_triangle) >= 1:
+            triangle_type = lst_triangle[0].geom_type
+        triangle_valid = True
+        for i, triangle in enumerate(lst_triangle):
 
-    def _init_load_cum_distance(self, lst_coords):
-        """Create a list of cummulative distance for a list of coordinates of a closed line
+            # Triangle are LineString
+            if triangle.geom_type == GenUtil.LINE_STRING:
+                coords = list(triangle.coords)
+                # Check number of vertice
+                if len(coords) != 4:
+                    print("Triangle does not contain exactly 4 vertices: {0}".format(coords[0]))
+                    triangle_valid = False
+                # Check if all geometry are identical
+                if triangle.geom_type != triangle_type:
+                    print("Triangle has mixed geometry type: {0}".format(coords[0]))
+                    triangle_valid = False
+                # Check if the line is closed
+                if Point(coords[0]).distance(Point(coords[3])) >= self.search_tolerance:
+                    print("Triangle is not closed: {0}".format(coords[0]))
+                    triangle_valid = False
 
-        Parameters:
-            - lst_coords: List of tuple of x,y coordinate
+            # Triangle are polygons
+            if triangle.geom_type == GenUtil.POLYGON:
+                coords = list(triangle.exterior.coords)
+                # Validate trianglehas 4 vertice
+                if len(coords) != 4:
+                    print("Triangle does not contain exactly 4 vertices: {0}".format(coords[0]))
+                    triangle_valid = False
+                    # Check if all geometry are identical
+                if triangle.geom_type != triangle_type:
+                    print("Triangle has mixed geometry type: {0}".format(coords[0]))
+                    triangle_valid = False
 
-        Return value: None
+                # Transform the polygon into a LineString
+                if triangle_valid:
+                    lst_triangle[i] = LineString(coords)
+
+            if not triangle_valid:
+                # There are one or more errors in the triangles
+                raise GeoSimException("Error in the triangles... cannot process them...")
+
+            return
+
+    def _build_clusters(self):
+        """Build the clusters of triangle
+
+        One cluster of triangles are all the triangles that have a common edge. One cluster of polygon is equivalent
+        to the area of one polygon (including the holes). The set of clusters represent all the polygons
+
+        *Parameters*:
+            - None
+
+        *Returns*:
+            - Clusters: list of list of triangles
+
         """
 
-        cum_distance = [0.]
-        nbr_coords = len(lst_coords)
+        dict_triangles = {}
+        clusters = []
+        for triangle in self.s_container.get_features():
+             dict_triangles[triangle.id] = triangle
 
-        # Build the cumulative distance list
-        for i, current_coord in enumerate(lst_coords):
-            if (i == 0):
-                # Do not add the first vertex in the container
-                previous_coord = current_coord
+        # Loop unitl all the triangles are processed
+        while len(dict_triangles) >= 1:
+            seed_triangle = next(iter(dict_triangles.values()))
+            cluster = self._build_one_cluster(dict_triangles, seed_triangle)
+            clusters.append(cluster)
+
+        return clusters
+
+    def _build_one_cluster(self, dict_triangles, seed_triangle):
+        """Identify all the triangle that shared an edge (triangle part of one polygon)
+
+        This method is simulating recursivity using a stack
+
+        *Parameters*:
+            - dict_triangle: Dictionary of the triangle
+            - seed_triangle: Random starting point to form a cluster
+
+        *Returns*:
+            - List of triangle forming a cluster
+
+        """
+
+        # Create cluster list to accumulate triangle in cluster
+        cluster = []
+
+        # Create the stack to simulate recursivity
+        stack = []
+
+        # Initialize the stack with the seed triangle
+        stack.append(seed_triangle)
+
+        # Loop over the stack until no more triangle to process
+        while stack:
+            # Fetch the next triangle
+            triangle = stack.pop()
+            # Add the tiangle in the cluster
+            cluster.append(triangle)
+
+            if triangle.id in dict_triangles:
+                # Remove from the triangle from the dictionary
+                del dict_triangles[triangle.id]
+                # Process the adjacent sides
+                for adjacent_side_ref in (triangle.adjacent_sides_ref):
+                    if adjacent_side_ref is not None:
+                        if adjacent_side_ref.id in dict_triangles:
+                            stack.append(adjacent_side_ref) # Simulate recursivity
+                        else:
+                            # triangle already processed
+                            pass
+                    else:
+                        # No triangle to process
+                        pass
             else:
-                dist = GenUtil.distance(previous_coord, current_coord)
-                last_dist = cum_distance[-1]
-                cum_distance.append(last_dist + dist)
-                previous_coord = current_coord
+                # Triangle alrerady processed
+                pass
 
-        self.lst_cumm_distance.append(cum_distance)
-        self.lst_lst_coords.append(lst_coords)
+        return cluster
 
-    def _get_points_info(self, coord, raise_exception=True):
-        """Extract the information for a specific coordinate
+    def get_skeleton(self):
+        """extract the ceneter line of each triangle merged them and create a list of LineString feature
 
-        Paramneter:
-            - coord: Location to search as a x,y coordinate
-            - raise_exception: Flag to enable (True) or disable (False) an exception if nothing is found
+                This method is simulating recursivity using a stack
 
-        Return value:
-            - Tuple of 2 elements:
-                - integer identifying the ring id of the ring
-                - integer identifying the position (index) of the coordinate in the list of coordinate of the ring
+        *Parameters*:
+            - None
+
+        *Returns*:
+            - None
+
         """
 
-        b_box = GenUtil.build_bounding_box(self._search_tolerance, coord)
-        points = list(self.s_cont_points.get_features(bounds=b_box))
-        nbr_points = len(points)
-        if nbr_points == 0:
-            # Nothing is found
-            id_ring = -1
-            id_coord = -1
-            if (raise_exception):
-                raise Exception("Integrity problem at coordinate: (%f,%f)" % (coord[0], coord[1]))
+        merged_centre_lines = []
+
+        # Process each cluster (polygon) independently
+        for triangle_cluster in self.triangle_clusters:
+            centre_lines = []
+            # Process each triangle of one cluster
+            for triangle in triangle_cluster:
+                centre_lines += triangle.centre_line
+
+            merge_centre_line = linemerge(centre_lines)
+            merged_centre_line = GenUtil.make_iterable(merge_centre_line)
+            merged_centre_lines += merged_centre_line
+
+        return merged_centre_lines
+
+    def correct_skeleton(self):
+
+        # Prune the small branch from the Junction triangle until there are no more small branch to prune
+        while True:
+            nbr_pruned = 0
+            for triangle in self.s_container.get_features():
+                if triangle.type == ChordalAxis.JUNCTION:
+                    nbr_pruned += self.prune_junction(triangle)
+            if nbr_pruned == 0:
+                break
+
+#        for triangle in self.s_container.get_features():
+#            if triangle.type == ChordalAxis.JUNCTION:
+#                branches = []
+#                for adjacent_triangle in triangle.adjacent_sides_ref:
+#                    branches.append(Branch(triangle, adjacent_triangle))
+#
+#                case = self.determine_scenario(triangle, branches)#
+#
+#                if case == 0:
+#                    for i, branch in enumerate(branches):
+#                        if branch.last_triangle == ChordalAxis.TERMINAL:
+#                            branch.del_centre_line()
+#                        else:
+#                            start_side = i
+#                    # Create a line from the start_side to the opposite angle
+#                    mid_side = triangle.mid_pnt_sides[start_side]
+#                    coord = triangle.coords[(start_side+2)%3]
+#                    triangle.centre_line = [LineString([mid_side, coord])]
+
+
+
+
+#
+#                lst_branch = [branch for branch in branches if branch.length < triangle.width]
+                print ("Cas: ", len(lst_branch), " ", list(triangle.coords))
+
+    def prune_junction(self, junction_triangle):
+        """This function prune a junction triangle of the branches that are below a certain tolerance"""
+
+        branches = []
+
+        for next_triangle in junction_triangle.adjacent_sides_ref:
+            branch = Branch(junction_triangle, next_triangle)
+            # Only keep small TERMINAL branches
+            if branch.last_triangle == ChordalAxis.TERMINAL and branch.length <= junction_triangle.width:
+                branches.append(branch)
+
+        if len(branches) == 3:
+            # The three branches of the junction Triangle are below the tolerance
+            # Remove the  branch with the smallest tolerance
+            max_length = sys.float_info.max
+            for branch in branches:
+                if branch.length < max_length:
+                    del_branches = [branch]
+                    max_length = branch.length
+
+        elif len(branches) == 2:
+            # Two branches are below the tolerance
+            if branches[0].length < branches[1].length:
+                branch_0 = branches[0]
+                branch_1 = branches[1]
+            else:
+                branch_0 = branches[1]
+                branch_1 = branches[0]
+            if branch_0.length < .3 *branch_1.length:
+                del_branches = [branch_0]
+            else:
+                del_branches = [branch_0, branch_1]
+        elif len(branches) == 1:
+            del_branches = [branches[0]]
         else:
-            if nbr_points == 1:
-                # There is only one point
-                point = points[0]
+            del_branches = []
+
+        if len(del_branches) >= 1:
+            for branch in del_branches:
+                # Loop over each branch
+                for triangle in branch.triangle_in_branch:
+                    # Make all the triangle forming the branch has terminal (isolated) terminal
+                    triangle.set_as_isolated()
+
+        return len(del_branches)
+
+#            # Extract the triangle id part of the branches
+#            lst_id = []
+#            for branch in branches:
+#                for triangle in branch._triangle_in_branch:
+#                    lst_id.append(triangle.id)#
+#
+#        return nbr_pruned#
+#
+#            # For the current triangle void the adjacent triangle that is now an isolated triangle
+#            for i in range(3):
+#                if junction_triangle.adjacent_sides_ref[i].id in lst_id:
+#                    junction_triangle.adjacent_sides_ref[i] = None
+#
+#
+#
+
+
+    def determine_scenario111111111111111111111(self, triangle, branches):
+
+        # Case: 1
+        # Check if the junction triangle in hand is adjacent to two TERMINAL triangles and
+        # either a Junction or Sleeve trianle
+        nbr_terminal = 0
+        nbr_sleeve = 0
+        nbr_junction = 0
+        case = None
+
+        # Evaluate adjacent triangle
+        for branch in branches:
+            if branch.last_triangle == ChordalAxis.TERMINAL:
+                nbr_terminal += 1
+            elif branch.last_triangle == ChordalAxis.SLEEVE:
+                nbr_sleeve += 1
             else:
-                # Take the closest point
-                min_dist = 1.0E+99
-                for p in points:
-                    dist = GenUtil.distance(p.coords[0], coord)
-                    if dist < min_dist:
-                        point = p
-                        dist = min_dist
-            id_ring = points[0].sb_id_ring
-            id_coord = points[0].sb_id_coord
+                nbr_junction += 1
 
-        return (id_ring, id_coord)
+        if nbr_terminal == 2:
+            case = 0
 
-    def get_sub_perimeter(self, coord0, coord1):
-        """Extract the coordinate between coord0 and coord1
+        return case
 
-           If the 2 coordinates belongs to the same ring extract the smallest perimeter coordinates list
-           between the 2 coordinates.
 
-        Parameters:
-            - coord0: First coordinate as a x,y Tuple
-            - coord1: Second coordinate as a x,y Tuple
+
+
+class _TriangleSc(LineStringSc):
+
+    """LineString specialization to be included in the SpatialContainer"""
+
+    id = 0
+
+    def __init__(self, coords):
+        super().__init__(coords)
+
+        # Add unique id to each Triangle
+        self.id = _TriangleSc.id
+        _TriangleSc.id += 1
+
+
+    @property
+    def mid_pnt_sides(self):
+
+        try:
+            return self._mid_pnt_sides
+        except AttributeError:
+            # Calculate the mid point of each side of the triangle
+            coords = list(self.coords)
+            mid_pnt_side_0 = LineString([coords[0], coords[1]]).interpolate(0.5, normalized=True)
+            mid_pnt_side_1 = LineString((coords[1], coords[2])).interpolate(0.5, normalized=True)
+            mid_pnt_side_2 = LineString((coords[2], coords[0])).interpolate(0.5, normalized=True)
+            self._mid_pnt_sides = [mid_pnt_side_0, mid_pnt_side_1, mid_pnt_side_2]
+            return self._mid_pnt_sides
+
+    @property
+    def adjacent_sides11111111(self):
+        try:
+            return self._adjacent_sides
+        except AttributeError:
+            self._adjacent_sides = []
+            # Set a list of 3 items: 0: No triangle adjacent; 1: Yes triangle adjacent
+            for adjacent_side_ref in self.adjacent_sides_ref:
+                if adjacent_side_ref is not None:
+                    self._adjacent_sides.append(1)  # There is a triangle on this side
+                else:
+                    self._adjacent_sides.append(0)  # There is no triangle on this side
+
+            return self.adjacent_sides
+
+    @property
+    def type(self):
+        try:
+            return self._type
+        except AttributeError:
+            self._type = 0
+            for adjacent_side_ref in self.adjacent_sides_ref:
+                if adjacent_side_ref != None:
+                    self._type += 1
+
+            return self._type
+
+    @property
+    def width(self):
+        try:
+            return self._width
+        except AttributeError:
+            lst_length = [line.length for line in self.centre_line]
+            max_length = max(lst_length)
+            self._width = max_length*2.
+
+            return self._width
+
+    @property
+    def adjacent_sides_ref(self):
+        try:
+            return self._adjacent_sides_ref
+        except AttributeError:
+            self._adjacent_sides_ref = self.get_adjacent_sides_ref()
+            return self._adjacent_sides_ref
+
+    @adjacent_sides_ref.setter
+    def adjacent_sides_ref(self, value):
+        self._adjacent_sides_ref = value
+
+        # Delete different attribute so they are recalculated
+        try:
+            del self._centre_line
+        except AttributeError:
+            pass
+        try:
+           del self._width
+        except AttributeError:
+            pass
+        try:
+            del self._type
+        except AttributeError:
+            pass
+
+    @property
+    def centre_line(self):
+        try:
+            return self._centre_line
+        except AttributeError:
+            self._centre_line = self._create_centre_line()
+
+            return self._centre_line
+
+    @centre_line.setter
+    def centre_line(self, value):
+        self._centre_line = value
+
+    def _create_centre_line(self):
+        """Calculates and extract the center line of one triangle
+
+        The center line depends of the type of triangle
+            Terminal triangle: From the side of the adjacent edge to the oposite angle
+            Sleeve triangle: Joining the mid side of the internal side
+            Junction triangle: Calculate the centroid and create 3 lines from the centroid to the mid of each side
+
+        *parameters*:
+            - triangle: LineStringSc triangle
+
+        *Returns*:
+            - None
 
         """
 
-        id_ring0, id_coord0 = self._get_points_info(coord0)
-        id_ring1, id_coord1 = self._get_points_info(coord1)
+        centre_line = []
+        coords = list(self.coords)
 
-        if (id_ring0 != -1 and id_ring0 != -1):
+        # Process each case depending on the number of internal side of the triangle
+        if self.type == ChordalAxis.ISOLATED:
+            # Degenerated polygon with one triangle no skeleton line added
+            pass
 
-            if (id_ring0 == id_ring1):
-                # Extract the appropriate coordinate ring
-                lst_coords = self.lst_lst_coords[id_ring0]
-                sub_coords1 = []
-                sub_coords2 = []
-                nbr_coords = len(lst_coords)
+        if self._type == ChordalAxis.TERMINAL:
+            # Terminal triangle add line from the extremity of the triangle up to mid opposite side
+            if self.adjacent_sides_ref[0] != None:
+                coords_line = [coords[2], self.mid_pnt_sides[0]]
+            if self.adjacent_sides_ref[1] != None:
+                coords_line = [coords[0], self.mid_pnt_sides[1]]
+            if self.adjacent_sides_ref[2] != None:
+                coords_line = [coords[1], self.mid_pnt_sides[2]]
 
-                # Loop to extract coordinate from first to last
-                start, end = id_coord0, id_coord1
-                i = start
-                while (i != end):
-                    sub_coords1.append(lst_coords[i])
-                    i = (i + 1) % nbr_coords
-                sub_coords1.append(lst_coords[i])
+            centre_line.append(LineString(coords_line))
 
-                # Loop to extract coordinate from last to first
-                start, end = id_coord1, id_coord0
-                i = start
-                while i != end:
-                    sub_coords2.append(lst_coords[i])
-                    i = (i + 1) % nbr_coords
-                sub_coords2.append(lst_coords[i])
+        if self.type == ChordalAxis.SLEEVE:
+            # Sleeve triangle skeleton added between the mid point of side adjacent to another triangle
+            mid_pnt = []
+            for i,adjacent_side_ref in enumerate(self._adjacent_sides_ref):
+                if adjacent_side_ref != None:
+                    mid_pnt.append(self.mid_pnt_sides[i])
+            centre_line.append(LineString([mid_pnt[0], mid_pnt[1]]))
 
-                # Take the smallest list
-                if len(sub_coords1) < len(sub_coords2):
-                    sub_lst_coords = sub_coords1
-                else:
-                    sub_lst_coords = sub_coords2
+        if self.type == ChordalAxis.JUNCTION:
+            # Junction triangle T type skeleton added.
+            centroid_x = (coords[0][0] + coords[1][0] + coords[2][0]) / 3.
+            centroid_y = (coords[0][1] + coords[1][1] + coords[2][1]) / 3.
+            centroid = [centroid_x, centroid_y]
 
-            else:
-                # Coordinates belongs to different ring
-                sub_lst_coords = None
+            for mid_side_pnt in self.mid_pnt_sides:
+                centre_line.append(LineString([centroid, mid_side_pnt]))
 
-        else:
-            # One or both coordinate not found
-            sub_lst_coords = None
+        return centre_line
 
-        return sub_lst_coords
+    def set_as_isolated(self):
+        """Set the attribute of the triangle to simulate a terminal triangle"""
 
-    def is_extremity(self, coord0, coord1, minimal_width):
-        """Determine if the 2 coordinates is located on an extremity of the polygon or not on an extremity
+        # To simulate an Isolated triangle the current triangle must not reference any adjacent triangle and
+        # all adjacent triangle must not reference the current triangle
+        # This is the case of a double reference so both reference must be put at None
+        for triangle_ref in self.adjacent_sides_ref:
+            if triangle_ref != None:
+                new_adjacent_sides_ref = triangle_ref.adjacent_sides_ref
+                for j in range(3):
+                    if new_adjacent_sides_ref[j] is not None and \
+                       new_adjacent_sides_ref[j].id == self.id:
+                        # Set the first referecne to None
+                        new_adjacent_sides_ref[j] = None
+                triangle_ref.adjacent_sides_ref = new_adjacent_sides_ref
 
-           To be considered as an extremity the 2 points must meet the following 2 conditions:
-               - It must be on the same ring
-               - The smallest of the areas formed by coord0, coord1 cutting the polygon is smaller
-                 than an area formed by a rectangle where one side is of length minimal_width and the other
-                 side of length coord0,coord1
+        # Set the second reference to None
+        self.adjacent_sides_ref = [None, None, None]
 
-           Parameters:
-               - coord1,coord2: Tuple of x,y coordinate of the location to check on the perimeter
-               - minimal_width: Tolerance to determine if it is an extremity
+    def get_adjacent_sides_ref(self):
+        """Test if the parameter is iterable; if not make it iterable by creating a tuple of one element
 
-           Return value:
-               - boolean: True it is an extremity; False otherwise
+        *Parameters*:
+            - in_hand_triangle: Triangle (LineStringSc) to check for adjacency
+            - mid_pnt_side: Point located on one of the edge of the triangle used as search point for adjacency
+
+        *Returns*:
+            - LineStringSc of the adjacent triangle or None (if no triangle)
+
         """
 
-        id_ring0, id_coord0 = self._get_points_info(coord0)
-        id_ring1, id_coord1 = self._get_points_info(coord1)
+        adjacent_sides_ref = []
 
-        if id_ring0 != -1 and id_ring0 != -1:
+        # Loop of each side (each mid_pnt_side) to find adjacent triangle
+        for mid_pnt_side in self.mid_pnt_sides:
 
-            if id_ring0 == id_ring1:
-                # Coordinates are on the same ring
-                cumm_distance = self.lst_cumm_distance[id_ring0]
-                if ((id_coord0 < 0 or id_coord0 > len(cumm_distance)) or
-                        (id_coord1 < 0 or id_coord1 > len(cumm_distance))):
-                    raise Exception("Internal Error...")
+            # Find all potential adjacent triangles
+            triangles = _TriangleSc.s_container.get_features(bounds=mid_pnt_side.bounds,remove_features=[self])
 
-                if id_coord0 < id_coord1:
-                    i, j = id_coord0, id_coord1
-                else:
-                    i, j = id_coord1, id_coord0
+            # Find the closest triangle
+            min_distance = sys.float_info.max
+            nbr_near_zero = 0
+            target_triangle = None
+            for triangle in triangles:
+                distance = mid_pnt_side.distance(triangle)
+                if distance < _TriangleSc.search_tolerance:
+                    nbr_near_zero += 1
+                    if distance < min_distance:
+                        min_distance = distance
+                        target_triangle = triangle
 
-                # Extracting the 2 perimetre formed by the line (p1,p2) cutting the polygon in two parts
-                peri_distance_1 = cumm_distance[j] - cumm_distance[i]
-                peri_distance_2 = cumm_distance[-1] - peri_distance_1
-                peri_distance = min(peri_distance_1, peri_distance_2)
+            adjacent_sides_ref.append(target_triangle)
 
-                # Check if the area formed is smaller than a minimal_width area
-                dist_0_1 = GenUtil.distance(coord0, coord1)
-                if dist_0_1 + peri_distance < 2 * dist_0_1 + 2 * minimal_width:
-                    extremity = True
-                else:
-                    extremity = False
-            else:
-                # Different rings
-                extremity = False
+            if nbr_near_zero >= 2:
+                xy = (mid_pnt_side.x, mid_pnt_side.y)
+                print("***Warning*** Triangles may be to small: {0} Try to simplify them (e.g. Douglas Peucker)".format(xy))
+
+        return adjacent_sides_ref
+
+
+class Branch:
+    """Manage one branch 
+    """
+
+    def __init__(self, current_triangle, next_triangle):
+
+        self.triangle_in_branch = []
+        self.length = 0.
+        max_length = current_triangle.width * 5.
+
+        if next_triangle.type == ChordalAxis.JUNCTION:
+            self.last_triangle = ChordalAxis.JUNCTION
+        elif next_triangle.type == ChordalAxis.TERMINAL:
+            self.last_triangle = ChordalAxis.TERMINAL
+            self.length = next_triangle.centre_line[0].length
+            self.triangle_in_branch.append(next_triangle)
         else:
-            # Some coordinates not found
-            extremity = False
+            while next_triangle.type == ChordalAxis.SLEEVE or next_triangle.type == ChordalAxis.TERMINAL:
+                self.triangle_in_branch.append(next_triangle)  # Add the next triangle in the list
+                self.length += next_triangle.centre_line[0].length  # Add the length
+                self.last_triangle = next_triangle.type
+                if next_triangle.type == ChordalAxis.SLEEVE and self.length < max_length:
+                    # Get the next triangle
+                    adjacents = [adjacent for adjacent in next_triangle.adjacent_sides_ref if adjacent is not None]
+                    if adjacents[0].id == current_triangle.id:
+                        current_triangle, next_triangle = next_triangle, adjacents[1]
+                    else:
+                        current_triangle, next_triangle = next_triangle, adjacents[0]
+                else:
+                    # End of logping reached
+                    break
+#    def del_centre_line(self):
+#        """Delete all the centre line in the triangles forming the branch#
+#
+#        """
+#        for triangle in self._triangle_in_branch:
+#            triangle.centre_line = []
 
-        return extremity
 
 
-class GeoSimException (Exception):
+
+
+class GeoSimException(Exception):
     """
     This is the base exception class for genmetal algorithms
     """
@@ -1917,13 +1538,12 @@ class GeoSimException (Exception):
         Exception.__init__(self, *arguments, **keywords)
 
 
-class InternalError (GeoSimException):
+class InternalError(GeoSimException):
     """
     This exception is raised when an internal error as occurred
     """
 
     def __init__(self, *param_names):
-
         """
         Initialise an Invalid Geometry Error
 

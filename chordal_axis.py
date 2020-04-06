@@ -5,7 +5,7 @@ import argparse
 import sys, os
 from dataclasses import dataclass
 from typing import List
-from shapely.geometry import Point, LineString, Polygon
+from shapely.geometry import LineString
 
 
 from lib_geosim import GenUtil, ChordalAxis, LineStringSc
@@ -17,9 +17,7 @@ def managae_arguments():
     # Setting the parameters of the command line
     parser = argparse.ArgumentParser()
     parser.add_argument("in_file", help="input vector file")
-#    parser.add_argument("-p", "--polygon", type=str, help="input layer name containing the polygon")
-    parser.add_argument("-t", "--tesselation", type=str, help="input layer name containing the result of the tesselation (triangle)")
-    parser.add_argument("-a", "--attribute", type=str, help="name of attribute linking the triangle to the polygon")
+    parser.add_argument("-t", "--triangle", type=str, help="input layer name containing the result of the triangulation (triangles)")
     parser.add_argument("-s", "--skeleton", type=str, help="name of output skeleton layer (centre line)")
 
     # Read the command line parameter
@@ -64,61 +62,72 @@ geo_content = GeoContent(crs=None, driver=None, schemas={}, in_features=[], out_
                          in_nbr_triangles=0, bounds=[], out_nbr_points=0,
                          out_nbr_line_strings=0, out_nbr_polygons=0)
 
-
-
 # Read the command line arguments
 command = managae_arguments()
 
 # Extract and load the layers of the input file
-layers = [command.tesselation]
+layers = [command.triangle]
 GenUtil.read_in_file (command.in_file, geo_content, layers)
 
-triangle_dict = {}
+lst_triangles = []
 for in_feature in geo_content.in_features:
-    key = in_feature.sb_properties[command.attribute]
-    if key in triangle_dict.keys():
-        triangle_dict[key].append(in_feature)
-    else:
-        triangle_dict[key] = [in_feature]
+    lst_triangles.append(in_feature)
 
 # Reset in_features
 geo_content.in_features = None
 
-a = LineStringSc([(0,0), (1,1), (2,2), (0,0)])
-case0 = [a]
 
-a = LineStringSc([(0,0), (1,1), (2,0), (0,0)])
-b = LineStringSc([(1,1), (3,1), (2,0), (1,1)])
-case1 = [a,b]
+a = LineString([(0,0), (1,1), (2,2), (0,0)])
+b = LineString([(10,10), (11,11), (12,12), (10,10)])
+case0 = [a,b]
 
-a = LineStringSc([(0,0), (1,1), (2,0), (0,0)])
-b = LineStringSc([(1,1), (3,1), (2,0), (1,1)])
-c = LineStringSc([(2,0), (3,1), (4,0), (2,0)])
-case2 = [a,b,c]
+a = LineString([(0,0), (1,1), (2,0), (0,0)])
+b = LineString([(1,1), (3,1), (2,0), (1,1)])
+c = LineString([(10,10), (11,11), (12,10), (10,10)])
+d = LineString([(11,11), (13,11), (12,10), (11,11)])
+case1 = [a,b,c,d]
 
-a = LineStringSc([(0,0), (1,1), (2,0), (0,0)])
-b = LineStringSc([(1,1), (3,1), (2,0), (1,1)])
-c = LineStringSc([(2,0), (3,1), (4,0), (2,0)])
-d = LineStringSc([(1,1), (2,2), (3,1), (1,1)])
-case2 = [a,b,c,d]
+a = LineString([(0,0), (1,1), (2,0), (0,0)])
+b = LineString([(1,1), (3,1), (2,0), (1,1)])
+c = LineString([(2,0), (3,1), (4,0), (2,0)])
 
-#triangle_dict = {1:case1}
+d = LineString([(10,10), (11,11), (12,10), (10,10)])
+e = LineString([(11,11), (13,11), (12,10), (11,11)])
+f = LineString([(12,10), (13,11), (14,10), (12,10)])
+case2 = [a,b,c,d,e,f]
+
+a = LineString([(0,0), (1,1), (2,0), (0,0)])
+b = LineString([(1,1), (3,1), (2,0), (1,1)])
+c = LineString([(2,0), (3,1), (4,0), (2,0)])
+d = LineString([(1,1), (2,2), (3,1), (1,1)])
+
+e = LineString([(10,10), (11,11), (12,10), (10,10)])
+f = LineString([(11,11), (13,11), (12,10), (11,11)])
+g = LineString([(12,10), (13,11), (14,10), (12,10)])
+h = LineString([(11,11), (12,12), (13,11), (11,11)])
+
+case3 = [a,b,c,d, e,f,g,h]
+
+#lst_triangles = case3
 
 
-
-for key in triangle_dict.keys():
-    ca = ChordalAxis(triangle_dict[key], GenUtil.ZERO)
-    centre_lines = ca.get_skeletton()
-    # Store the chordal axis in the output
-    for centre_line in centre_lines:
-        centre_line.sb_layer_name = command.skeleton
-        centre_line.sb_properties={}
-        geo_content.out_features.append(centre_line)
+ca = ChordalAxis(lst_triangles, GenUtil.ZERO)
+#if command.correct:
+ca.correct_skeleton()
+centre_lines = ca.get_skeleton()
+# Store the chordal axis in the output
+for centre_line in centre_lines:
+    centre_line.sb_layer_name = command.skeleton
+    centre_line.sb_properties={}
+    geo_content.out_features.append(centre_line)
 
 print ("-------")
 print("Name of input file: {}".format(command.in_file))
-print ("Name of input tesselation layer: {}".format(command.tesselation))
+print ("Name of input triangle layer: {}".format(command.triangle))
 print ("Nampe of output skeleton layer: {}".format(command.skeleton))
+print ("Number of polygons: {}".format(ca.nbr_polygons))
+print ("Number of triangles: {}".format(ca.nbr_triangles))
+
 print ("-----")
 
 
@@ -126,5 +135,5 @@ print ("-----")
 geo_content.layer_names = [command.skeleton]
 GenUtil.write_out_file_append (command.in_file, geo_content)
 
-print ("Number of point features written: {}".format(geo_content.out_nbr_points))
-print ("Number of line string features written: {}".format(geo_content.out_nbr_line_strings))
+#print ("Number of point features written: {}".format(geo_content.out_nbr_points))
+#print ("Number of line string features written: {}".format(geo_content.out_nbr_line_strings))
