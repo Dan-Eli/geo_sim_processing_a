@@ -942,6 +942,10 @@ class ChordalAxis(object):
     TERMINAL = 1
     SLEEVE = 2
     JUNCTION = 3
+    CLASS_REGULAR = 0
+    CLASS_T_CORRECTION = 1
+    CLASS_X_CORRECTION = 2
+    ANGLE_T_JUNCTION = 20.
 
     def __init__(self, lst_triangle, search_tolerance=GenUtil.ZERO):
         """Constuctor of the ChordalAxis class
@@ -955,7 +959,7 @@ class ChordalAxis(object):
 
         """
 
-        self.search_tolerance = search_tolerance
+        ChordalAxis.SEARCH_TOLERANCE = search_tolerance
 
         self._validate_triangles(lst_triangle)
 
@@ -972,13 +976,16 @@ class ChordalAxis(object):
 
         # Load some class viriables
         _TriangleSc.s_container = self.s_container
-        _TriangleSc.search_tolerance = self.search_tolerance
 
         # Build the cluster (group of triangles part of a polygon)
         self.triangle_clusters = self._build_clusters()
 
         self.nbr_polygons = len(self.triangle_clusters)
         self.nbr_triangles = len(lst_triangle)
+        self.nbr_lines_pruned = 0
+        self.nbr_iteration = 0
+        self.nbr_t_junction = 0
+        self.nbr_x_junction = 0
 
         return
 
@@ -1010,7 +1017,7 @@ class ChordalAxis(object):
                     print("Triangle has mixed geometry type: {0}".format(coords[0]))
                     triangle_valid = False
                 # Check if the line is closed
-                if Point(coords[0]).distance(Point(coords[3])) >= self.search_tolerance:
+                if Point(coords[0]).distance(Point(coords[3])) >= ChordalAxis.SEARCH_TOLERANCE:
                     print("Triangle is not closed: {0}".format(coords[0]))
                     triangle_valid = False
 
@@ -1145,38 +1152,64 @@ class ChordalAxis(object):
 
         # Prune the small branch from the Junction triangle until there are no more small branch to prune
         while True:
+            self.nbr_iteration += 1
             nbr_pruned = 0
             for triangle in self.s_container.get_features():
                 if triangle.type == ChordalAxis.JUNCTION:
                     nbr_pruned += self.prune_junction(triangle)
             if nbr_pruned == 0:
                 break
+            else:
+                self.nbr_lines_pruned += nbr_pruned
 
-#        for triangle in self.s_container.get_features():
-#            if triangle.type == ChordalAxis.JUNCTION:
-#                branches = []
-#                for adjacent_triangle in triangle.adjacent_sides_ref:
-#                    branches.append(Branch(triangle, adjacent_triangle))
-#
-#                case = self.determine_scenario(triangle, branches)#
-#
-#                if case == 0:
-#                    for i, branch in enumerate(branches):
-#                        if branch.last_triangle == ChordalAxis.TERMINAL:
-#                            branch.del_centre_line()
-#                        else:
-#                            start_side = i
-#                    # Create a line from the start_side to the opposite angle
-#                    mid_side = triangle.mid_pnt_sides[start_side]
-#                    coord = triangle.coords[(start_side+2)%3]
-#                    triangle.centre_line = [LineString([mid_side, coord])]
+        # Correct the T junction to form a straight line if 2 brancj have the same orientation
+        for triangle in self.s_container.get_features():
+            if triangle.type == ChordalAxis.JUNCTION:
+                sides_t_junction = self.adjust_t_junction(triangle)
+                if sides_t_junction is not None:
+                    self.nbr_t_junction += 1
+                    triangle.junction_class = ChordalAxis.CLASS_T_CORRECTION
+                    triangle.junction_side_a = sides_t_junction[0]
+                    triangle.junction_side_b = sides_t_junction[1]
+                    triangle.centre_line = None
 
 
+    def adjust_t_junction(self, junction_triangle):
+        """This function corrects T junction"""
 
+        branches = []
+        sides_t_junction = None
+        for next_triangle in junction_triangle.adjacent_sides_ref:
+            if next_triangle.type == ChordalAxis.SLEEVE:
+                branch = Branch(junction_triangle, next_triangle)
+                branches.append(branch)
 
-#
-#                lst_branch = [branch for branch in branches if branch.length < triangle.width]
-                print ("Cas: ", len(lst_branch), " ", list(triangle.coords))
+        if len(branches) == 3:
+            line_angle = [branch.average_angle for branch in branches]
+
+            sides_t_junction = None
+            angle_max = ChordalAxis.ANGLE_T_JUNCTION
+            for i,j in [(0,1),(1,2),(2,0)]:
+                angle_close = abs(line_angle[i] - line_angle[j])
+                angle_open = 180. - (line_angle[i] + line_angle[j])
+                if angle_close < angle_max:
+                    angle_max = angle_close
+                    sides_t_junction = [i,j]
+                elif angle_open < angle_max:
+                    angle_max = angle_open
+                    sides_t_junction = [i, j]
+
+            if angle_max < ChordalAxis.ANGLE_T_JUNCTION:
+                # Branches are nor perpendicular
+                sides_t_junction = [i, j]
+            else:
+                # No correction done
+                pass
+        else:
+            # No T junction to process
+            pass
+
+        return sides_t_junction
 
     def prune_junction(self, junction_triangle):
         """This function prune a junction triangle of the branches that are below a certain tolerance"""
@@ -1224,49 +1257,6 @@ class ChordalAxis(object):
 
         return len(del_branches)
 
-#            # Extract the triangle id part of the branches
-#            lst_id = []
-#            for branch in branches:
-#                for triangle in branch._triangle_in_branch:
-#                    lst_id.append(triangle.id)#
-#
-#        return nbr_pruned#
-#
-#            # For the current triangle void the adjacent triangle that is now an isolated triangle
-#            for i in range(3):
-#                if junction_triangle.adjacent_sides_ref[i].id in lst_id:
-#                    junction_triangle.adjacent_sides_ref[i] = None
-#
-#
-#
-
-
-    def determine_scenario111111111111111111111(self, triangle, branches):
-
-        # Case: 1
-        # Check if the junction triangle in hand is adjacent to two TERMINAL triangles and
-        # either a Junction or Sleeve trianle
-        nbr_terminal = 0
-        nbr_sleeve = 0
-        nbr_junction = 0
-        case = None
-
-        # Evaluate adjacent triangle
-        for branch in branches:
-            if branch.last_triangle == ChordalAxis.TERMINAL:
-                nbr_terminal += 1
-            elif branch.last_triangle == ChordalAxis.SLEEVE:
-                nbr_sleeve += 1
-            else:
-                nbr_junction += 1
-
-        if nbr_terminal == 2:
-            case = 0
-
-        return case
-
-
-
 
 class _TriangleSc(LineStringSc):
 
@@ -1279,6 +1269,9 @@ class _TriangleSc(LineStringSc):
 
         # Add unique id to each Triangle
         self.id = _TriangleSc.id
+
+        # Attribute for Junction specialization
+        self.junction_class = ChordalAxis.CLASS_REGULAR
         _TriangleSc.id += 1
 
 
@@ -1295,21 +1288,6 @@ class _TriangleSc(LineStringSc):
             mid_pnt_side_2 = LineString((coords[2], coords[0])).interpolate(0.5, normalized=True)
             self._mid_pnt_sides = [mid_pnt_side_0, mid_pnt_side_1, mid_pnt_side_2]
             return self._mid_pnt_sides
-
-    @property
-    def adjacent_sides11111111(self):
-        try:
-            return self._adjacent_sides
-        except AttributeError:
-            self._adjacent_sides = []
-            # Set a list of 3 items: 0: No triangle adjacent; 1: Yes triangle adjacent
-            for adjacent_side_ref in self.adjacent_sides_ref:
-                if adjacent_side_ref is not None:
-                    self._adjacent_sides.append(1)  # There is a triangle on this side
-                else:
-                    self._adjacent_sides.append(0)  # There is no triangle on this side
-
-            return self.adjacent_sides
 
     @property
     def type(self):
@@ -1371,7 +1349,13 @@ class _TriangleSc(LineStringSc):
 
     @centre_line.setter
     def centre_line(self, value):
-        self._centre_line = value
+        if value is None:
+            try:
+                del self._centre_line
+            except AttributeError:
+                pass
+        else:
+            self._centre_line = value
 
     def _create_centre_line(self):
         """Calculates and extract the center line of one triangle
@@ -1417,10 +1401,17 @@ class _TriangleSc(LineStringSc):
             centre_line.append(LineString([mid_pnt[0], mid_pnt[1]]))
 
         if self.type == ChordalAxis.JUNCTION:
-            # Junction triangle T type skeleton added.
-            centroid_x = (coords[0][0] + coords[1][0] + coords[2][0]) / 3.
-            centroid_y = (coords[0][1] + coords[1][1] + coords[2][1]) / 3.
-            centroid = [centroid_x, centroid_y]
+            if self.junction_class == ChordalAxis.CLASS_REGULAR:
+                # Regular triangle T type. Centroid is the centroid of the triangle
+                pnt_x = (coords[0][0] + coords[1][0] + coords[2][0]) / 3.
+                pnt_y = (coords[0][1] + coords[1][1] + coords[2][1]) / 3.
+                centroid = [pnt_x, pnt_y]
+            elif self.junction_class == ChordalAxis.CLASS_T_CORRECTION:
+                # Corrected triangle T. Centroid is the middle point between the 2 aligned branches
+                pnt0 = self.mid_pnt_sides[self.junction_side_a]
+                pnt1 = self.mid_pnt_sides[self.junction_side_b]
+                pnt = LineString([(pnt0.x,pnt0.y), (pnt1.x,pnt1.y)]).interpolate(0.5, normalized=True)
+                centroid = [pnt.x, pnt.y]
 
             for mid_side_pnt in self.mid_pnt_sides:
                 centre_line.append(LineString([centroid, mid_side_pnt]))
@@ -1472,7 +1463,7 @@ class _TriangleSc(LineStringSc):
             target_triangle = None
             for triangle in triangles:
                 distance = mid_pnt_side.distance(triangle)
-                if distance < _TriangleSc.search_tolerance:
+                if distance < ChordalAxis.SEARCH_TOLERANCE:
                     nbr_near_zero += 1
                     if distance < min_distance:
                         min_distance = distance
@@ -1495,7 +1486,7 @@ class Branch:
 
         self.triangle_in_branch = []
         self.length = 0.
-        max_length = current_triangle.width * 5.
+        max_length = current_triangle.width * 3.
 
         if next_triangle.type == ChordalAxis.JUNCTION:
             self.last_triangle = ChordalAxis.JUNCTION
@@ -1518,12 +1509,46 @@ class Branch:
                 else:
                     # End of logping reached
                     break
-#    def del_centre_line(self):
-#        """Delete all the centre line in the triangles forming the branch#
-#
-#        """
-#        for triangle in self._triangle_in_branch:
-#            triangle.centre_line = []
+
+    @property
+    def average_angle(self):
+        try:
+            return self._average_angle
+        except AttributeError:
+            total_length = 0.
+            angle_length = 0.
+            self._average_angle = 0.
+            for triangle in self.triangle_in_branch:
+                if triangle.type in [ChordalAxis.SLEEVE, ChordalAxis.TERMINAL]:
+                    line = triangle.centre_line[0]
+                    x0,y0 = line.coords[0][0], line.coords[0][1]
+                    x1, y1 = line.coords[1][0], line.coords[1][1]
+                    if y1 < y0:
+                        # The vector is located in quadrant 3 or 4 the cartesian graphic
+                        # Move the vector in quadrant 1 or 2 by flipping the vector
+                        x0, x1 = x1, x0
+                        y0, y1 = y1, y0
+                    delta_y = y1 - y0
+                    delta_x = x1 - x0
+                    if abs(delta_x) <= ChordalAxis.SEARCH_TOLERANCE:  # Avoid division by zero
+                        delta_x = ChordalAxis.SEARCH_TOLERANCE
+                    angle = math.atan(delta_y/delta_x)
+                    angle = math.degrees(angle)
+                    if (angle < 0.):
+                        # Adjust to have continous angle from 0..180 and not [0..90, -90..0]
+                        angle = 180. + angle
+                        print(angle)
+                    else:
+                        print(angle)
+
+                    angle_length += angle * line.length
+                    total_length += line.length
+            print ("")
+            self._average_angle = (angle_length / total_length)
+
+            return self._average_angle
+
+
 
 
 
