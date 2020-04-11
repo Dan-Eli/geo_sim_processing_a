@@ -1240,7 +1240,7 @@ class ChordalAxis(object):
 
             if last_triangle.type == ChordalAxis.JUNCTION and \
                last_triangle.sub_type == ChordalAxis.NONE and \
-               branch.length < current_junction.width:
+               branch.length < min(current_junction.width, last_triangle.width) * .5:
 
                 # Merge the triangle to form only one polygon
                 line_triangles = [current_junction] + branch.triangle_in_branch
@@ -1277,7 +1277,8 @@ class ChordalAxis(object):
         for mid_pnt_side in new_mid_pnt_sides:
             line = LineString((centroid, mid_pnt_side))
             if line.crosses(buf_merged_pol):
-                valid= False
+                status = False
+                print ("Croisement:", centroid)
                 break
 
         return status
