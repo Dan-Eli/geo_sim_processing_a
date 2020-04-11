@@ -130,6 +130,7 @@ print ("Number of triangles: {}".format(ca.nbr_triangles))
 print ("Number of line pruned during skeleton correction: {}".format(ca.nbr_lines_pruned))
 print ("Number of iteration done for skeleton correction: {}".format(ca.nbr_iteration))
 print ("Number of T junction corrected: {}".format(ca.nbr_t_junction))
+print ("Number of X junction corrected: {}".format(ca.nbr_x_junction))
 
 
 print ("-----")
