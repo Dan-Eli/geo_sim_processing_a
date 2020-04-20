@@ -24,6 +24,9 @@ script:
   - python test_sherbend.py ./data/test_sherbend_out.gpkg ./data/test_sherbend_out_standard.gpkg
 #
 # Test Chordal Axis
+# -----------------
+  - ogrinfo -sql "DROP TABLE Skeleton" ./data/test_chordal_axis
+  - ogrinfo -sql "DROP TABLE SkeletonCorrect" ./data/test_chordal_axis
 
 
 
