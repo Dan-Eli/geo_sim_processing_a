@@ -28,8 +28,8 @@ script:
   - ogrinfo -sql "DROP TABLE Skeleton" ./data/test_chordal_axis.gpkg
   - ogrinfo -sql "DROP TABLE SkeletonCorrect" ./data/test_chordal_axis.gpkg
 # Execute triangulation
-  - chordal_axis -t Triangles -s Skeleton ./data/test_chordal_axis.gpkg
-  - chordal_axis -t Triangles -s SkeletonCorrect -c ./data/test_chordal_axis.gpkg
+  - chordal_axis.py -t Triangles -s Skeleton ./data/test_chordal_axis.gpkg
+  - chordal_axis.py -t Triangles -s SkeletonCorrect -c ./data/test_chordal_axis.gpkg
 
 
 
