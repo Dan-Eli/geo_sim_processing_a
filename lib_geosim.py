@@ -1203,6 +1203,7 @@ class ChordalAxis(object):
     JUNCTION_T = 5  # T Junction triangle where there is a straight between two of its branches
     JUNCTION_X_FIRST = 6  # First (primary) X Junction triangle
     JUNCTION_X_LAST = 7  # Last (secondary) X Junction triangle
+    JUNCTION_X_LENGTH = .2  #  Distance between two X junction
 
     # Define the type of action(type_action) for creating the centre line
     #   NONE = 0  # No special action is needed when creating the center line
@@ -1611,7 +1612,7 @@ class ChordalAxis(object):
 
             # If the last triangle in a branch is junctin and within a certain tolerance it's a candidate for X Junction
             if last_triangle.type in (ChordalAxis.JUNCTION, ChordalAxis.JUNCTION_T) and \
-                    branch.length < min(current_junction.width, last_triangle.width) * .5:
+                    branch.length < min(current_junction.width, last_triangle.width) * ChordalAxis.JUNCTION_X_LENGTH:
                 # Merge the triangle lin the branch to form only one polygon
                 line_triangles = [current_junction] + branch.triangle_in_branch
                 pol_triangles = [Polygon(line.coords) for line in line_triangles]
@@ -1971,7 +1972,7 @@ class _TriangleSc(LineStringSc):
                 # Degenerated polygon with one triangle no skeleton line added
                 pass
 
-            if self._type == ChordalAxis.TERMINAL:
+            elif self._type == ChordalAxis.TERMINAL:
                 # Terminal triangle add line from the extremity of the triangle up to mid opposite side
                 if self.adjacent_sides_ref[0] != None:
                     coords_line = [coords[2], self.mid_pnt_sides[0]]
