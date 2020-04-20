@@ -26,7 +26,7 @@ script:
 #
 # Test ChordalAxis
 # ----------------
-# Delete layer in the geo package using GDAL (ogrinfo)
+# Delete layer in the geopackage using GDAL (ogrinfo)
   - ogrinfo -sql "DROP TABLE Skeleton" ./data/test_chordal_axis
   - ogrinfo -sql "DROP TABLE SkeletonCorrect" ./data/test_chordal_axis
 # Create the Chordal Axis
