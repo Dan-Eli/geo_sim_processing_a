@@ -30,7 +30,7 @@ if not path.isfile(command.file_1):
 
 # Check that the output file exist. Exit if present
 if not path.isfile(command.file_2):
-    raise Exception('Second file is present: {}'.format(command.file_2))
+    raise Exception('Second file is missing: {}'.format(command.file_2))
 
 for i in range(len(argv)-1):
     dummy = argv.pop()
