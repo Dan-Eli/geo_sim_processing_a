@@ -33,9 +33,5 @@ script:
   - python test_sherbend.py -l1 Skeleton -l2 Skeleton .\data\TestTriangle.gpkg .\data\TestTriangle_standard.gpkg
 # Execute triangulation without correction to the skeleton
   - python chordal_axis.py -t Triangles -s -c SkeletonCorrected ./data/test_chordal_axis.gpkg
-#Validate the result with correction
+# Validate the result with correction
   - python test_sherbend.py -l1 Skeleton -l2 Skeleton .\data\TestTriangle.gpkg .\data\TestTriangle_standard.gpkg
-
-
-
-
