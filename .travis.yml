@@ -27,9 +27,14 @@ script:
 # Remove unnecessary layers
   - ogrinfo -sql "DROP TABLE Skeleton" ./data/test_chordal_axis.gpkg
   - ogrinfo -sql "DROP TABLE SkeletonCorrect" ./data/test_chordal_axis.gpkg
-# Execute triangulation
+# Execute triangulation without correction to the skeleton
   - python chordal_axis.py -t Triangles -s Skeleton ./data/test_chordal_axis.gpkg
-  - python chordal_axis.py -t Triangles -s SkeletonCorrect -c ./data/test_chordal_axis.gpkg
+# Validate the result without correction
+  - python test_sherbend -l1 Skeleton -l2 Skeleton .\data\TestTriangle.gpkg .\data\TestTriangle_standard.gpkg
+# Execute triangulation without correction to the skeleton
+  - python chordal_axis.py -t Triangles -s Skeleton ./data/test_chordal_axis.gpkg
+#Validate the result with correction
+  - python test_sherbend -l1 Skeleton -l2 Skeleton .\data\TestTriangle.gpkg .\data\TestTriangle_standard.gpkg
 
 
 
