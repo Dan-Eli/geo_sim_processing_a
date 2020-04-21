@@ -548,8 +548,8 @@ class GenUtil:
 
         Parameters
         ----------
-        in_file : str
-            Name of the input file (geopackage)
+        in_file : lst
+            List of name of the input file layers (geopackage)
         geo_content : dict
             Dictionary containing the information of the spatial database (including the features)
         layer_in : str
@@ -566,7 +566,7 @@ class GenUtil:
             geo_content.layer_names = fiona.listlayers(in_file)
         else:
             # Only extract specific layer
-            geo_content.layer_names = [layer_in]
+            geo_content.layer_names = layer_in
 
         # extract the spatial feature in the file
         for layer_name in geo_content.layer_names:

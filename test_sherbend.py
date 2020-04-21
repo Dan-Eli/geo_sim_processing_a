@@ -100,11 +100,11 @@ geo_content_sc = GeoContent(crs=None, driver=None, schemas={}, bounds=[], layer_
                             in_nbr_points=0, in_nbr_line_strings=0, in_nbr_polygons=0, in_nbr_holes=0)
 
 # Read and load the layers of the primary geopackage
-GenUtil.read_in_file(command.file_1, geo_content_pr, layer_in=command.layer_1)
+GenUtil.read_in_file(command.file_1, geo_content_pr, layer_in=[command.layer_1])
 print("File#1 read: {0}".format(command.file_1) )
 
 # Read and load the layers of the secondary geopackage
-GenUtil.read_in_file(command.file_2, geo_content_sc, layer_in=command.layer_2)
+GenUtil.read_in_file(command.file_2, geo_content_sc, layer_in=[command.layer_2])
 print("File#2 read: {0}".format(command.file_2) )
 
 if __name__ == '__main__':
