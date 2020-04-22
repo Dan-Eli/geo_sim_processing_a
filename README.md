@@ -154,7 +154,7 @@ The Chordal Axis algorithm gives a very approximation of the true medial axis of
 
 ![figure5a](/image/figure5a.png "Figure 5a") ![figure5b](/image/figure5b.png "Figure 5b") ![figure5c](/image/figure5c.png "Figure 5c") ![figure5d](/image/figure5d.png "Figure 5d") ![figure5e](/image/figure5e.png "Figure 5e") ![figure5f](/image/figure5f.png "Figure 5f")
 
-Figure 4a<pre>    </pre>Figure 4b<pre>    </pre>Figure 4c<pre>    </pre>Figure 4d<pre>    </pre>Figure 4e<pre>    </pre>Figure 4f
+Figure 4a      Figure 4b     Figure 4c    Figure 4d    Figure 4e    Figure 4f
 
 ## Rule of thumb for the use of Chordal Axis
 Chordal Axis can be used for skeleton extraction and polygon to line transformation in the context of polygon generalization. Often the quality of the skeleton produced will depend on the density of the vertices on the polygon and defacto the density of the triangles that Chordal Axis will ingest.  Equilateral triangle produce the best skeleton while highly obtuse and/or acute triangles will produce zigzag in the line that can be simplify after.  So tune the vertice density not to over or under simplified features.  Delaunay triangulation and Chordal Axis will give excellent results in very complex situation like a dense polygonized road network.  For example Figure 4 is composed of one and only one polygon!
