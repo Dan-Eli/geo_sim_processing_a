@@ -135,6 +135,7 @@ optional arguments:
      -h, --help          Show this help message and exit
      -t, --triangle      Name of the layer in the graphic file containing the triangle (Line string)
      -s, --skeleton      Name of the layer to create that will contain the skeleton
+     -c, --correction    Correct the skeleton for small centre line, T junction and X junction
      
 Some example:
 
