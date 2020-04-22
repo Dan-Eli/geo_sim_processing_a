@@ -152,7 +152,7 @@ A user will probably creates the triangulation from a set of polygons using a co
 ## Correction
 The Chordal Axis algorithm gives a very approximation of the true medial axis of a polygon but it produces unwanted artifacts in the produced skeleton specially in the case of long and narrow polygon (figure 5) . The main artifacts are: firstly, meaningless small centre line (figure 4a); secondly wrongly formed "T junction" (figure 4c) and "X junction" (crossing junction) (figure 4e).  When the parameter correction is used (_-c_ or _--correction_), the skeleton will prune the meaningless small centre line (4b); it will correct "T junction" and rectify the normal direction (figure 4d); it will rectify the "X crossing" by nerging two Tjunction that are adjacent (figure 4f).
 
-![Figure4a](/image/figure5a.png)
+![figure5a](/image/figure5a.png "Figure 5a") ![figure5b](/image/figure5b.png "Figure 5b")
 
 ## Rule of thumb for the use of Chordal Axis
 Chordal Axis can be used for skeleton extraction and polygon to line transformation in the context of polygon generalization. Often the quality of the skeleton produced will depend on the density of the vertices on the polygon and defacto the density of the triangles that Chordal Axis will ingest.  Equilateral triangle produce the best skeleton while highly obtuse and/or acute triangles will produce zigzag in the line that can be simplify after.  So tune the vertice density not to over or under simplified features.  Delaunay triangulation and Chordal Axis will give excellent results in very complex situation like a dense polygonized road network.  For example Figure 4 is composed of one and only one polygon!
