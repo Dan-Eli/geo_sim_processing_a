@@ -1,43 +1,46 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+"""Algorithm to extract the ChordalAxis of a set of triangles"""
 
-import argparse
-import sys, os
+from argparse import ArgumentParser
+from os import path
 from dataclasses import dataclass
 from typing import List
 from shapely.geometry import LineString
-
-
-from lib_geosim import GenUtil, ChordalAxis, LineStringSc
+from lib_geosim import GenUtil, ChordalAxis
 
 
 def managae_arguments():
-    """Read and manage the input arguments in the command line"""
+    """Extract the parameters of the line of command
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    command
+        Parameters of the command line
+    """
 
     # Setting the parameters of the command line
-    parser = argparse.ArgumentParser()
+    parser = ArgumentParser()
     parser.add_argument("in_file", help="input vector file")
     parser.add_argument("-t", "--triangle", type=str, help="input layer name containing the result of the triangulation (triangles)")
     parser.add_argument("-s", "--skeleton", type=str, help="name of output skeleton layer (centre line)")
+    parser.add_argument("-c", "--correction", action='store_true', help="name of output skeleton layer (centre line)")
 
     # Read the command line parameter
     command = parser.parse_args()
 
     # Check that the triangle input file exist. Exit if missing
-    if not os.path.isfile(command.in_file):
+    if not path.isfile(command.in_file):
         raise Exception('Input file is missing: {}'.format(command.in_file))
 
-
     return command
-
-@dataclass
-class Command:
-    """Contains the parameters of the command."""
 
 
 @dataclass
 class GeoContent:
-    """Contains the geographical content of the file.
+    """Data class containing the geographical content of the file.
 
         Keyword arguments:
         crs -- coordinate reference system
@@ -73,67 +76,33 @@ lst_triangles = []
 for in_feature in geo_content.in_features:
     lst_triangles.append(in_feature)
 
-# Reset in_features
-geo_content.in_features = None
-
-
-a = LineString([(0,0), (1,1), (2,2), (0,0)])
-b = LineString([(10,10), (11,11), (12,12), (10,10)])
-case0 = [a,b]
-
-a = LineString([(0,0), (1,1), (2,0), (0,0)])
-b = LineString([(1,1), (3,1), (2,0), (1,1)])
-c = LineString([(10,10), (11,11), (12,10), (10,10)])
-d = LineString([(11,11), (13,11), (12,10), (11,11)])
-case1 = [a,b,c,d]
-
-a = LineString([(0,0), (1,1), (2,0), (0,0)])
-b = LineString([(1,1), (3,1), (2,0), (1,1)])
-c = LineString([(2,0), (3,1), (4,0), (2,0)])
-
-d = LineString([(10,10), (11,11), (12,10), (10,10)])
-e = LineString([(11,11), (13,11), (12,10), (11,11)])
-f = LineString([(12,10), (13,11), (14,10), (12,10)])
-case2 = [a,b,c,d,e,f]
-
-a = LineString([(0,0), (1,1), (2,0), (0,0)])
-b = LineString([(1,1), (3,1), (2,0), (1,1)])
-c = LineString([(2,0), (3,1), (4,0), (2,0)])
-d = LineString([(1,1), (2,2), (3,1), (1,1)])
-
-e = LineString([(10,10), (11,11), (12,10), (10,10)])
-f = LineString([(11,11), (13,11), (12,10), (11,11)])
-g = LineString([(12,10), (13,11), (14,10), (12,10)])
-h = LineString([(11,11), (12,12), (13,11), (11,11)])
-
-case3 = [a,b,c,d, e,f,g,h]
-
-#lst_triangles = case3
-
+geo_content.in_features = None  # Reset in_features
 
 ca = ChordalAxis(lst_triangles, GenUtil.ZERO)
-#if command.correct:
-ca.correct_skeleton()
+if command.correction:
+    # Correct the skeleton
+    ca.correct_skeleton()
 centre_lines = ca.get_skeleton()
-# Store the chordal axis in the output
+
+# Store the chordal axis in the output file
 for centre_line in centre_lines:
     centre_line.sb_layer_name = command.skeleton
     centre_line.sb_properties={}
     geo_content.out_features.append(centre_line)
 
+# Print the stats
 print ("-------")
 print("Name of input file: {}".format(command.in_file))
 print ("Name of input triangle layer: {}".format(command.triangle))
 print ("Nampe of output skeleton layer: {}".format(command.skeleton))
 print ("Number of polygons: {}".format(ca.nbr_polygons))
 print ("Number of triangles: {}".format(ca.nbr_triangles))
-
+print ("Number of line pruned during skeleton correction: {}".format(ca.nbr_lines_pruned))
+print ("Number of iteration done for skeleton correction: {}".format(ca.nbr_iteration))
+print ("Number of T junction corrected: {}".format(ca.nbr_t_junction))
+print ("Number of X junction corrected: {}".format(ca.nbr_x_junction))
 print ("-----")
-
 
 # Copy the results in the output file
 geo_content.layer_names = [command.skeleton]
 GenUtil.write_out_file_append (command.in_file, geo_content)
-
-#print ("Number of point features written: {}".format(geo_content.out_nbr_points))
-#print ("Number of line string features written: {}".format(geo_content.out_nbr_line_strings))

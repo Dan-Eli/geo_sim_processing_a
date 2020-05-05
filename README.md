@@ -113,11 +113,8 @@ Note: For any given line or polygon ring, only those bends the simplification of
 ### Rule of thumb for the diameter
 Sherbend can be used for line simplifying often in the context of line generalization. The big question will often be what diameter should we use?  A good starting point is the cartographic rule of thumb -- the *.5mm on the map* -- which says that the minimumm distance between two lines should be greater than 0.5mm on a paper map. So to simplify (generalize) a line for representation at a scale of 1:50 000 for example a diameter of 25m should be a good starting point...
 
-<<<<<<< HEAD
 ## Known issue with GeoPackage format
-=======
 # Chordal Axis
->>>>>>> b0ad6e85b452b66ccd6277c2900d403a45672b31
 
 ChordalAxis is a geospatial tool that takes triangles, usually the result of a constraint Delauny trianglulation and creates a skeleton (the center line).  ChordalAxis is an improvement of the algorithm based of the paper "Rectification of the Chordal Axis Transform and a New Criterion for Shape
 Decomposition", Lakshman Prasad, 2005".
@@ -139,6 +136,8 @@ optional arguments:
      -h, --help          Show this help message and exit
      -t, --triangle      Name of the layer in the graphic file containing the triangle (Line string)
      -s, --skeleton      Name of the layer to create that will contain the skeleton
+     -c, --correction    Correct the skeleton for small centre line, T junction and X junction
+
 
 Some example:
 
@@ -148,13 +147,23 @@ python chordal_axis.py -t tesselation -s skeleton road.gpkg
 
  ## How it works
 
+A user will probably creates the triangulation from a set of polygons using a constraints Delaunay triangulation tool.  Delaunay triangulation is known to be very robust and stable and well describe polygons.  The resulting triangles are the input for Chordal Axis program.  Chordal Axis alogorithm will analyse each triangle, determine its type based on the number of adjacent triangles and build the appropriate skeleton (centre line).  All triangles falls within one of the following four types: first, _isolated triangle_ when a triangle has no adjacent triangle; second, _terminal triangle_ when a trianle has only one adjacent triangle; third, _sleeve triangle_ when a triangle has 2 adjacent triangles; fourth, _junction triangle_ when a triangle has 3 adjacent triangles.  Each type of the four types of triangle will produce a specific centre line as follow: for the _isolated triangle_, (Figure 3a) no center line (degenerated case) is created; for the _terminal triangle_, (Figure 3b) the mid point of the adjecent side is connected with the opposite angle; for _sleeve triangle_ (Figure 3c), the mid point of each adajcent side are connected; for the _junction triangle_, (Figure 3d) the mid point of each side are connected to the centre point of the triangle.  After centre line creation all the centre lines are merged together.  Chordal Axis transform will preserve [Simplicity](#Simplicity) and [Intersection](#Intersection) topological relationships between the lines forming the skeleton and the outer and inner boundaries of the polygon defined by the triangles of the Delaynay triangulation.
+
+
  A user will probably creates the triangulation from a set of polygons using a constraints Delaunay triangulation tool.  Delaunay triangulation is known to be very robust and stable and well describe polygons.  The resulting triangles are the input for Chordal Axis program.  Chordal Axis alogorithm will analyse each triangle, determine its type based on the number of adjacent triangles and build the appropriate skeleton (centre line).  All triangles falls within one of the following four types: first, _isolated triangle_ when a triangle has no adjacent triangle; second, _terminal triangle_ when a trianle has only one adjacent triangle; third, _sleeve triangle_ when a triangle has 2 adjacent triangles; fourth, _junction triangle_ when a triangle has 3 adjacent triangles.  Each type of the four types of triangle will produce a specific centre line as follow: for the _isolated triangle_, (Figure 3a) no center line (degenerated case) is created; for the _terminal triangle_, (Figure 3b) the mid point of the adjecent side is connected with the opposite angle; for _sleeve triangle_ (Figure 3c), the mid point of each adajcent side are connected; for the _junction triangle_, (Figure 3d) the mid point of each side are connected to the centre point of the triangle.  After centre line creation all the centre lines are merged together.  Chordal Axis transform will preserve [Simplicity](#Simplicity) and [Intersection](#Intersection) topological relationships between the lines forming the skeleton and the outer and inner boundaries of the polygon defined by the triangles of the Delaynay triangulation.
 
 ![figure3](/image/figure3.png)
 
-### Rule of thumb for the use of Chordal Axis
+## Correction
+The Chordal Axis algorithm gives a very good approximation of the true medial axis of a polygon but it produces unwanted artifacts when it creates the skeleton specially in the case of long and narrow polygon (figure 5) . The main artifacts are: firstly, meaningless small centre line (figure 4a); secondly wrongly formed "T junction" (figure 4c) and "X junction" (crossing junction) (figure 4e).  When the parameter correction is used (-c or --correction), the skeleton will be prunef of the meaningless small centre line (4b); it will correct "T junction" and rectify the normal direction of the line (figure 4d); and, it will rectify the "X crossing" by merging two T junction that are adjacents (figure 4f).
+
+![figure5a](/image/figure5a.png "Figure 5a") ![figure5b](/image/figure5b.png "Figure 5b") ![figure5c](/image/figure5c.png "Figure 5c") ![figure5d](/image/figure5d.png "Figure 5d") ![figure5e](/image/figure5e.png "Figure 5e") ![figure5f](/image/figure5f.png "Figure 5f")
+
+  Figure 4a    Figure 4b     Figure 4c    Figure 4d    Figure 4e    Figure 4f
+
+## Rule of thumb for the use of Chordal Axis
 Chordal Axis can be used for skeleton extraction and polygon to line transformation in the context of polygon generalization. Often the quality of the skeleton produced will depend on the density of the vertices on the polygon and defacto the density of the triangles that Chordal Axis will ingest.  Equilateral triangle produce the best skeleton while highly obtuse and/or acute triangles will produce zigzag in the line that can be simplify after.  So tune the vertice density not to over or under simplified features.  Delaunay triangulation and Chordal Axis will give excellent results in very complex situation like a dense polygonized road network.  For example Figure 4 is composed of one and only one polygon!
 
 ![figure4](/image/figure4.png)
 
-Figure 4
+Figure 5
