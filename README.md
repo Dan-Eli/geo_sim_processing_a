@@ -175,7 +175,7 @@ Note: While most of GIS tool will display invalid geometry (figure 6a), some spa
 
 ![figure6a](/image/figure6a.png "Figure 6a") ![figure6b](/image/figure6b.png "Figure 6b")
 
-Figure 6a                       Figure 6b
+    Figure 6a            Figure 6b
 
 
 ## Usage
