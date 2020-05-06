@@ -4,9 +4,9 @@ GeoSim is a set of tools that aims to simplify/generalize line and polygon featu
 
 ## Requirements  
 - Python 3.7 with the following libraries:
-    - [Shapely] (https://pypi.org/project/Shapely/)
-    - [Rtree] (https://pypi.org/project/Rtree/)
-    - [Fiona] (https://pypi.org/project/Fiona/)
+    - [Shapely](https://pypi.org/project/Shapely/)
+    - [Rtree](https://pypi.org/project/Rtree/)
+    - [Fiona](https://pypi.org/project/Fiona/)
 
 ## Installation on your workstation
 Using conda, you can set and activate your python environment with the following commands:   
@@ -38,11 +38,11 @@ Process finished with exit code 0
 
 # TopoSim
 
-TopoSim is geospatial simplification tool for lines and polygons.  TopoSim implements the simplify tool of Shapely using *preserve_topology=True*. For the line simplification Shapely implements an algorithm similar to the [Douglas Peucker algorithm] (https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm).  This implementation is preserving the the topology within one feature but not between feature in the same layer or between layers.  There is also a [known bug] (https://locationtech.github.io/jts/javadoc/org/locationtech/jts/simplify/TopologyPreservingSimplifier.html) where the algorithm may create invalid topology if there are components which are small relative to the tolerance value.   In particular, if a small hole is very near an edge, it is possible for the edge to be moved by a relatively large tolerance value and end up with the hole outside the result shell (or inside another hole). Similarly, it is possible for a small polygon component to end up inside a nearby larger polygon.  Toposim will detect these situations and remove these small holes so the the feature are valid after the simplification.    
+TopoSim is geospatial simplification tool for lines and polygons.  TopoSim implements the *simplify* tool of Shapely using *preserve_topology=True*. For line and polygon simplification Shapely implements an algorithm similar to the [Douglas Peucker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm).  This implementation preserve the topology within one feature but not between features in the same layer or between layers.  There is also a [known bug](https://locationtech.github.io/jts/javadoc/org/locationtech/jts/simplify/TopologyPreservingSimplifier.html) where the algorithm may create invalid topology if there are components which are small relative to the tolerance value.   In particular, if a small hole is very near an edge, it is possible for the edge to be moved by a relatively large tolerance value and end up with the hole outside the exterior or interior holes. Similarly, it is possible for a small polygon component to end up inside a nearby larger polygon.  Toposim will detect these situations and remove these small holes so the the feature are valid after the simplification.    
 
 ## Usage
 
-usage: python sherbend.py \[-h] \[-eh] \[-ep] \[-pl] \[-d diameter | -dl dlayer] in_file out_file
+usage: python toposim.py \[-h] \[-t tolerance | -tl tlayer] in_file out_file
 
 positional arguments:
 
@@ -51,30 +51,24 @@ positional arguments:
 
 optional arguments:
 
-     -d , --diameter          Diameter of the minimum adjusted area bend to simplify (to remove)     
+     -t , --tolerance         Tolerance for the line simplification (usage similar to Douglas Peucker)     
      -h, --help               Show this help message and exit
-     -eh, --exclude_hole      Exclude (delete) polygon rings (interior holes) below the minimum adjusted area
-     -ep, --exclude_polygon   Exclude (delete) polygons exteriors below the minimum adjusted area (delete also any interior holes if present)
-     -pl, --per_layer         Analyze topology per layer only; this means features from different layers can overlap after simplification
-     -dl, --dlayer            Specify the diameter of the minimum adjusted area bend to simplify per layer name (ex: -dl Road=5,Hydro=7.5)
+     -dl, --dlayer            Specify the tolerance for the line simplification per layer name (ex: -dl Road=5,Hydro=7.5)
 
 Some example:
 
-python sherbend.py -d 3 in_file.gpkg out\_file.gpkh
+python toposim.py -t 3 in_file.gpkg out_file.gpkh
 
-   - Simplify each feature of each layer of the input file (in_file.gpkg) with a bend diameter below 3 (in map unit) and create the output file out_file.gpkg
+   - Simplify each feature of each layer of the input file (in_file.gpkg) with a tolerance of 3 and create the output file out_file.gpkg
 
-python sherbend.py -d 3 -pl in\_file.gpkg out_file.gpkh
+python toposim.py -tl Road=3,Lake=5 in_file.gpkg out_file.gpkh
 
-   - Simplify each feature of each layer of the input file with a bend diameter below 3 and create the output file with each layer processed independently
+   - Simplify each feature of the Road layer with a tolerance of 3 and Lake layers with a tolerance of 5.
 
-python sherbend.py -d 3 -ep -eh in_file.gpkg out_file.gpkh
+## How it works
 
-   - Simplify each feature of each layer of the input file with a bend diameter below 3 and create the output file; delete the polygons including all their interiors if the exterior is below a bend diameter of 3; also delete the polygon interiors if the interior is below a bend diameter of 3
+Toposim is an excellent tool to remove vertice on features where the density of vertice is very high.  Try it with small tolerance value and use [Sherbend](#Sherbend) to [generalize features](##Line Simplification versus Line Generalization). 
 
-python sherbend.py -dl Road=3,Lake=5,River=0 in_file.gpkg out_file.gpkh
-
-   - Simplify each feature of the Road, Lake and River layers of the input file with a bend diameter below 3 for the Road layer, 5 for the Lake layer and do not simplify the River layer features but use them for analysing the topology; finally create the output file
 
 
 # Sherbend
@@ -101,11 +95,11 @@ optional arguments:
 
 Some example:
 
-python sherbend.py -d 3 in_file.gpkg out\_file.gpkh
+python sherbend.py -d 3 in_file.gpkg out_file.gpkh
 
    - Simplify each feature of each layer of the input file (in_file.gpkg) with a bend diameter below 3 (in map unit) and create the output file out_file.gpkg
 
-python sherbend.py -d 3 -pl in\_file.gpkg out_file.gpkh
+python sherbend.py -d 3 -pl in_file.gpkg out_file.gpkh
 
    - Simplify each feature of each layer of the input file with a bend diameter below 3 and create the output file with each layer processed independently
 
