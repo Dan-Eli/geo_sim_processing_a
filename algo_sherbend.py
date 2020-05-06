@@ -1,4 +1,4 @@
-"""This algorithm CIT-S implements the Wang Generalization algotithm with constraint checking
+"""This algorithm implements the Wang Generalization algotithm with constraint checking
 
     This algorithm simplifies lines.  It detects for each line the bends.  It analyze the bend and
     remove the bends that are below a certain diameter. The point and lines that do not need 

@@ -5,66 +5,6 @@ from shapely.strtree import STRtree
 from cmath import rect, phase
 from math import radians, degrees
 from shapely.ops import polygonize, polygonize_full, split
-from lib_geosim import Holder
-
-
-def pol_area(pol):
-    return pol.area
-
-l0 = LineString([(0,0),(0,20),(20,20),(20,0),(0,0)])
-l1 = LineString([(1,1),(1,2),(2,2),(2,1),(1,1)])
-l2 = LineString([(21,21),(21,22),(22,22),(22,1),(21,21)])
-l3 = LineString([(5,5),(5,10),(10,10),(10,5),(5,5)])
-l4 = LineString([(7,7),(7,9),(9,9),(9,7),(7,7)])
-l5 = LineString([(12,12),(12,14),(14,14),(14,12),(12,12)])
-p0 = Polygon(l0.coords)
-p1 = Polygon(l1.coords)
-p2 = Polygon(l2.coords)
-p3 = Polygon(l3.coords)
-p4 = Polygon(l4.coords)
-p5 = Polygon(l5.coords)
-
-pol_rings = [p0.exterior,p1.exterior,p2.exterior,p3.exterior,p4.exterior,p5.exterior]
-for pol in pol_rings: print (pol.area)
-pol_rings.sort(key=pol_area)
-for pol in pol_rings: print (pol.area)
-polygons = []
-polygon_ext = pol_rings.pop()
-polygon = Holder(exterior=polygon_ext.exterior, interiors=[])
-polygons.append(polygon)
-while pol_rings:
-    new_interior = pol_rings.pop()
-    for i in range(len(polygons)):
-        hole_in = False
-        exterior = polygons[i].exterior
-        interiors = polygons[i].interiors
-        polygon = Polygon(exterior, interiors)
-        if new_interior.within(polygon):
-            polygons[i].interiors.append(new_interior.exterior)
-            hole_in = True
-            break
-    if not hole_in:
-        polygon = Holder(exterior=new_interior.exterior, interiors=[])
-        polygons.append(polygon)
-
-
-
-
-
-
-
-
-ext = [(0,0), (0,10),(4,10),(4,12),(6,12),(6,10),(10,10), (10,0),(0,0)]
-int_1 = [[(5,11), (5,11.5),(5.2,11.5), (5.2,11), (5,11)]]
-pol = Polygon(ext,int_1)
-pol1 = pol.simplify(2, preserve_topology=True )
-pol2 = pol.simplify(2, preserve_topology=False )
-print ('Pol: ' , pol)
-print ('Pol : ', pol.is_valid, pol.is_simple)
-print ('Pol1: ' , pol1)
-print ('Pol1 : ', pol1.is_valid, pol1.is_simple)
-print ('Pol2: ' , pol2)
-print ('Pol2 : ', pol2.is_valid, pol2.is_simple)
 
 
 line = LineString(((0,0),(5,0),(10,0)))

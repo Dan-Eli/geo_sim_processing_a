@@ -50,7 +50,7 @@ def manage_arguments():
             try:
                 command.dlayer_dict[layer_tol[0]] = float(layer_tol[1])
             except Exception:
-                print('Error in the definition of the diameter per layer: "{}"'.format(command.dlayer))
+                print('Error in the definition of the diameter per layer (-dl or --dlayer): "{}"'.format(command.dlayer))
                 parser.print_help()
                 exit(1)
 
@@ -105,10 +105,10 @@ geo_content = GeoContent(crs=None, driver=None, schemas={}, bounds=[], layer_nam
 command = manage_arguments()
 
 if command.dlayer:
-    # Extract the list of layers
+    # Extract the list of layers to read
     in_layer_names = [layer_name for layer_name in command.dlayer_dict.keys()]
 else:
-    # Read all the layers in the file
+    # Read all the layers in the input file
     in_layer_names = None
 
 # Read and load the layers of the input file
@@ -159,7 +159,7 @@ if command.per_layer:
             if feature.sb_layer_name == layer_name:
                 geo_content.in_features.append(feature)
 
-        # Process feature per layer in one pprocess
+        # Process feature per layer in one process
         sherbend = AlgoSherbend(command, geo_content)
         sherbend.process()
         # Copy the feature in the temporary outut
