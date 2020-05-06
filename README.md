@@ -169,9 +169,13 @@ Figure 5
 
 # TopoSim
 
-TopoSim is geospatial simplification tool for lines and polygons.  TopoSim implements the *simplify* tool of Shapely using *preserve_topology=True*. For line and polygon simplification Shapely implements an algorithm similar to the [Douglas Peucker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm).  This implementation preserve the topology within one feature but not between features in the same layer or between layers.  There is also a [known bug](https://locationtech.github.io/jts/javadoc/org/locationtech/jts/simplify/TopologyPreservingSimplifier.html) where the algorithm may create invalid topology if there are components which are small relative to the tolerance value.   In particular, if a small hole is very near an edge, it is possible for the edge to be moved by a relatively large tolerance value and end up with the hole outside the exterior or interior holes (figure 6a). Similarly, it is possible for a small polygon component to end up inside a nearby larger polygon.  Toposim will detect these situations and remove these small holes (figure 6b) so the feature are valid after the simplification.    
+TopoSim is a geospatial simplification tool for lines and polygons.  TopoSim implements the *simplify* tool of Shapely with parameter  *preserve_topology=True*. For line and polygon simplification Shapely implements an algorithm similar to the [Douglas Peucker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm).  This implementation preserves the topology within one feature but not between features of the same layer or from different layers.  There is also a [known bug](https://locationtech.github.io/jts/javadoc/org/locationtech/jts/simplify/TopologyPreservingSimplifier.html) where the algorithm may create invalid topology if there are components which are small relative to the tolerance value.   In particular, if a small hole is very near an edge, it is possible for the edge to be moved (when a large large tolerance value is used) and end up with the hole outside the exterior or interior holes (figure 6a). Similarly, it is possible for a small polygon component to end up inside a nearby larger polygon.  Toposim will detect these situations and remove these small holes (figure 6b) so the feature are valid after the simplification.
+
+Note: While most of GIS tool will display invalid geometry (figure 6a), some spatial operation will not be allowed and this is why it's important to keep validity of the geometry after a spatial operation.
 
 ![figure6a](/image/figure6a.png "Figure 6a") ![figure6b](/image/figure6b.png "Figure 6b")
+
+Figure 6a                       Figure 6b
 
 
 ## Usage
@@ -187,7 +191,7 @@ optional arguments:
 
      -t , --tolerance         Tolerance for the line simplification (usage similar to Douglas Peucker)     
      -h, --help               Show this help message and exit
-     -dl, --dlayer            Specify the tolerance for the line simplification per layer name (ex: -dl Road=5,Hydro=7.5)
+     -tl, --tlayer            Specify the tolerance for the line simplification per layer name (ex: -dl Road=5,Hydro=7.5)
 
 Some example:
 
