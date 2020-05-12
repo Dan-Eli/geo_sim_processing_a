@@ -169,9 +169,9 @@ Figure 5
 
 # TopoSim
 
-TopoSim is a geospatial simplification tool for lines and polygons.  TopoSim implements the *simplify* tool of Shapely with parameter  *preserve_topology=True*. For line and polygon simplification Shapely implements an algorithm similar to the [Douglas Peucker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm).  This implementation preserves the topology within one feature but not between features of the same layer or from different layers.  There is also a [known bug](https://locationtech.github.io/jts/javadoc/org/locationtech/jts/simplify/TopologyPreservingSimplifier.html) where the algorithm may create invalid topology if there are components which are small relative to the tolerance value.   In particular, if a small hole is very near an edge, it is possible for the edge to be moved (when a large large tolerance value is used) and end up with the hole outside the exterior or interior holes (figure 6a). Similarly, it is possible for a small polygon component to end up inside a nearby larger polygon.  Toposim will detect these situations and remove these small holes (figure 6b) so the feature are valid after the simplification.
+TopoSim is a geospatial simplification tool for lines and polygons.  TopoSim implements [Shapely](https://pypi.org/project/Shapely/)'s *simplify* tool with parameter  *preserve_topology=True*. For line and polygon simplification Shapely implements an algorithm similar to the [Douglas Peucker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm).  The implementation preserves the topology within one feature but not between features of the same layer or from different layers.  There is also a [known bug](https://locationtech.github.io/jts/javadoc/org/locationtech/jts/simplify/TopologyPreservingSimplifier.html) where the algorithm may create invalid topologies if there are components which are small relative to the tolerance value.   In particular, if a small interior hole is very close to an edge, simplification may result in the hole being moved outside the polygon (figure 6a). Similarly, a small polygon close to a larger one may end up being swallowed into the larger polygon.  Toposim will detect situations like figure 6b where one or more rings (interior parts) fall outside the polygon after being simplified and make the polygon invalid. The algoritm will remove (delete) these ring(s) so the feature remains valid after simplification.
 
-Note: While most GIS tools will handle and display invalid geometry (figure 6b), some spatial operation will not be allowed and this is why it's important to keep validity of the geometry after a spatial operation.
+Note: While most GIS tools will handle and display invalid geometries like figure 6b, some spatial operation will not be allowed and this is why it's important to keep validity of the geometry after a spatial operation.
 
 ![figure6a](/image/figure6a.png "Figure 6a") ![figure6b](/image/figure6b.png "Figure 6b")
 
@@ -191,19 +191,22 @@ optional arguments:
 
      -t , --tolerance         Tolerance for the line simplification (usage similar to Douglas Peucker)     
      -h, --help               Show this help message and exit
-     -tl, --tlayer            Specify the tolerance for the line simplification per layer name (ex: -dl Road=5,Hydro=7.5)
+     -tl, --tlayer            Specify the tolerance for the line simplification per layer name (ex: -tl Road=5,Hydro=7.5)
 
-Some example:
+Examples:
 
+```python
 python toposim.py -t 3 in_file.gpkg out_file.gpkh
+```
 
-   - Simplify each feature of each layer of the input file (in_file.gpkg) with a tolerance of 3 and create the output file out_file.gpkg
+Simplify each feature in *in_file.gpkg* with a tolerance of 3 and create *out_file.gpkg*
 
+```python
 python toposim.py -tl Road=3,Lake=5 in_file.gpkg out_file.gpkh
+```
 
-   - Simplify each feature of the Road layer with a tolerance of 3 and Lake layers with a tolerance of 5.
+Simplify each feature of the Road layer with a tolerance of 3 and Lake layers with a tolerance of 5.
 
 ## How it works
 
-Toposim is an excellent tool to remove vertice on features where the density of vertice is very high.  Try it with small tolerance value and use [Sherbend](#Sherbend) to [generalize features](##Line Simplification versus Line Generalization). 
-
+Toposim is an excellent tool to remove vertices on features with high vertex densities.  Try it with small tolerance value and then use [Sherbend](#Sherbend) to [generalize features](##Line Simplification versus Line Generalization).
