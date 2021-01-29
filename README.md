@@ -3,7 +3,7 @@
 GeoSim is a QGIS plugin that aims to simplify/generalize line and polygon features. It is composed of 3 tools: [Reduce Vend](#Reduce-Bend), [Chordal Axis](#Chordal-Axis) and [TopoSim](#TopoSim)
 
 ## Requirements  
-- [QGIS] (www.qgis.org) >3.14
+- [QGIS](www.qgis.org) >3.14
 
 ## Installation as a plugin
 ...
