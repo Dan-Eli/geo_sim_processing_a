@@ -136,4 +136,4 @@ Simplifier is a processing script dicoverable in the QGIS Processing Tool Box un
 
 ## How it works
 
-Toposim is an excellent tool to remove vertices on features with high vertex densities.  Try it with small tolerance value and then use [Reduce Bend](#Reduce-Bend) to [generalize features](##Line Simplification versus Line Generalization).
+Toposim is an excellent tool to remove vertices on features with high vertex densities.  Try it with small tolerance value and then use [Reduce Bend](#Reduce-Bend) to [generalize features](##Line-Simplification-versus-Line-Generalization).
