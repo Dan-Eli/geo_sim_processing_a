@@ -32,7 +32,7 @@ __revision__ = '$Format:%H$'
 
 from qgis.core import QgsProcessingProvider
 from .reduce_bend_algorithm import ReduceBendAlgorithm
-from .topological_sim_algorithm import TopoSimAlgorithm
+from .simplify_algorithm import SimplifyAlgorithm
 from .chordal_axis_algorithm import ChordalAxisAlgorithm
 import os
 import inspect
@@ -60,7 +60,7 @@ class GeoSimplificationProvider(QgsProcessingProvider):
         """
         self.addAlgorithm(ChordalAxisAlgorithm())
         self.addAlgorithm(ReduceBendAlgorithm())
-        self.addAlgorithm(TopoSimAlgorithm())
+        self.addAlgorithm(SimplifyAlgorithm())
         
         # add additional algorithms here
         # self.addAlgorithm(MyOtherAlgorithm())

@@ -15,7 +15,7 @@ import os
 import inspect
 from qgis.PyQt.QtGui import QIcon
 
-class TopoSimAlgorithm(QgsProcessingAlgorithm):
+class SimplifyAlgorithm(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer,
     creates some new layers and returns some results.
@@ -29,19 +29,19 @@ class TopoSimAlgorithm(QgsProcessingAlgorithm):
 
     def createInstance(self):
         # Must return a new copy of your algorithm.
-        return TopoSimAlgorithm()
+        return SimplifyAlgorithm()
 
     def name(self):
         """
         Returns the unique algorithm name.
         """
-        return 'topologicalsimplifier'
+        return 'simplify'
 
     def displayName(self):
         """
         Returns the translated algorithm name.
         """
-        return 'Topological Simplifier (D Peuker+)'
+        return 'Simplify'
 
     def group(self):
         """
@@ -60,21 +60,25 @@ class TopoSimAlgorithm(QgsProcessingAlgorithm):
         """
         Returns a localised short help string for the algorithm.
         """
-        help_str = """<b>Topological simplifier</b> \
-     TopoSim is a geospatial simplification tool for lines and polygons. TopoSim implements \
+        help_str = """<b>Simplify</b> \
+    Simplify is a geospatial simplification tool for lines and polygons. Simplify implements \
     QGIS's QgsTopologyPreservingSimplifier tool. For line and polygon simplification \
     that tool implements an algorithm similar to the Douglas Peucker algorithm. The implementation \
-    preserves the topology within one feature but not between features of the same layer or from \
-    different layers. There is also a known bug where the algorithm may create invalid topologies \
+    preserves the topology within one vector feature but not between vector features. \
+    There is also a known bug where the algorithm may create invalid topologies \
     if there are components which are small relative to the tolerance value. In particular, if a \
-    small interior hole is very close to an edge, simplification may result in the hole being moved \
-    outside the polygon. Toposim will detect these situations where one or more rings (interior \
+    small interior hole is very close to an edge, the resulting simplification may result in the hole being \
+    moved outside the polygon. This algorithm will detect these situations where one or more rings (interior \
     parts) fall outside the polygon after being simplified and make the polygon invalid. \
     The algoritm will remove (delete) these ring(s) so the feature remains valid after simplification.
 
     <b>Usage</b>
-    <u>Input</u>: A Line String or Polygon layer
+    
+    <u>Input layer</u>: The Line String or Polygon layer to simplify
+    
     <u>Tolerance</u>: The tolerance in ground unit used to simplify the line
+    
+    <u>Simplified</u>: The simplified Line String or Polygon Layer
 
     For more information: https:...
     """
@@ -98,24 +102,11 @@ class TopoSimAlgorithm(QgsProcessingAlgorithm):
                 types=[QgsProcessing.TypeVectorAnyGeometry]
             )
         )
-        self.addParameter(
-            QgsProcessingParameterVectorDestination(
-                'BUFFER_OUTPUT',
-                self.tr('Buffer output'),
-            )
-        )
-#        # 'OUTPUT' is the recommended name for the main output
-#        # parameter.
-#        self.addParameter(
-#            QgsProcessingParameterRasterDestination(
-#                'OUTPUT',
-#                self.tr('Raster output')
-#            )
-#        )
+
         self.addParameter(
             QgsProcessingParameterDistance(
                 'TOLERANCE',
-                self.tr('TOLERANCE'),
+                self.tr('Tolerance'),
                 defaultValue = 1.0,
                 # Make distance units match the INPUT layer units:
                 parentParameterName='INPUT'
@@ -125,7 +116,7 @@ class TopoSimAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 'VERBOSE',
-                self.tr('VERBOSE'),
+                self.tr('Verbose'),
                 defaultValue=1.0
             )
         )
@@ -133,26 +124,11 @@ class TopoSimAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 'OUTPUT',
-                self.tr('OUTPUT')
+                self.tr('Simplified')
             )
         )
 
 
-
-#        self.addParameter(
-#            QgsProcessingParameterDistance(
-#                'CELLSIZE',
-#                self.tr('CELLSIZE'),
-#                defaultValue = 10.0,
-#                parentParameterName='INPUT'
-#            )
-#        )
-#        self.addOutput(
-#            QgsProcessingOutputNumber(
-#                'NUMBEROFFEATURES',
-#                self.tr('Number of features processed')
-#            )
-#        )
 
 
 

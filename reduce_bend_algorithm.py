@@ -69,47 +69,32 @@ class ReduceBendAlgorithm(QgsProcessingAlgorithm):
         Returns a localised short help string for the algorithm.
         """
         help_str = """
-    Sherbend is a geospatial simplification and generalization tool for lines and polygons. \
-    Sherbend is an implementation and an improvement of the algorithm described in the paper \
+    Reduce bend is a geospatial simplification and generalization tool for lines and polygons. \
+    Reduce bend is an implementation and an improvement of the algorithm described in the paper \
     "Line Generalization Based on Analysis of Shape Characteristics, Zeshen Wang and \
     Jean-Claude Müller, 1998" often known as "Bend Simplify" or "Wang Algorithm". The \
-    particularity of this algorithm is that for each line it analyzes its bends (curves) and \
+    particularity of this algorithm is that for each line or polygon it analyzes its bends (curves) and \
     decides which one to simplify, trying to emulate what a cartographer would do manually \
-    to simplify or generalize a line. Sherbend will accept points, lines and polygons as input. \
-    Even though points cannot be simplified, they are used for topological relationship \
-    validations. Sherbend can accept GeoPackage and Esri Shape file as input/ouput but not a mixed \
-    of both.
+    to simplify or generalize a line. Reduce bend will accept lines and polygons as input. \
 
     <b>Usage</b>
 
-    <u>Input</u> : Any Line string or Polygon layer
+    <u>Input layer</u> : Any Line string or Polygon layer
 
-    <u>Bend diameter</u>: Theoritical diameter of a bend to remove
+    <u>Diameter tolerance</u>: Theoritical diameter of a bend to remove
 
     <u>Exclude hole</u>: If you want to exclude holes below the diameter of the bend
 
     <u>Exclude polygon</u>: If you want to exclude polygon below the diameter of the bend
-
-    <b>Line Simplification versus Line Generalization</b>
-    Line Simplification is the process of removing vertices in a line while trying to keep the maximum \
-    number of details within the line whereas Line Generalization is the process of removing \
-    meaningless (unwanted) details in a line usually for scaling down. The well known Douglas-Peucker \
-    algorithm is a very good example of line simplification tool and Sherbend falls more in the \
-    category of line generalization tools. Keep in mind thay both algorithms can be complementary because \
-    Sherbend will not remove unnecessary vertices in the case of very high densities of vertices. It may \
-    be a good idea to use Douglass Peucker before Sherbend in the case of very densed geometries.
+    
+    <u>Reduced bend</u> : Output layer of the algorithm
 
     <b>Rule of thumb for the diameter</b>
-    Sherbend can be used for line simplifying often in the context of line generalization. The big \
+    Reduce bend can be used for line simplifying in the context of line generalization. The big \
     question will often be what diameter should we use? A good starting point is the cartographic rule of \
-    thumb -- the .5mm on the map -- which says that the minimumm distance between two lines should be \
+    thumb -- the .5mm on the map -- which says that the minimum distance between two lines should be \
     greater than 0.5mm on a paper map. So to simplify (generalize) a line for representation at a scale of \
-    1:50 000 for example a diameter of 25m should be a good starting point...Rule of thumb for the diameter \
-    Sherbend can be used for line simplifying often in the context of line generalization. The big question will \
-    often be what diameter should we use? A good starting point is the cartographic rule of thumb -- the .5mm \
-    on the map -- which says that the minimumm distance between two lines should be greater than 0.5mm on a paper \
-    map. So to simplify (generalize) a line for representation at a scale of 1:50 000 for example a diameter of \
-    25m should be a good starting point...
+    1:50 000 for example a diameter of 25m should be a good starting point.
 
     for more information: https:...
 
@@ -131,7 +116,7 @@ class ReduceBendAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 'INPUT',
-                self.tr('Input vector layer'),
+                self.tr('Input layer'),
                 types=[QgsProcessing.TypeVectorAnyGeometry]
             )
         )
@@ -149,7 +134,7 @@ class ReduceBendAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 'VERBOSE',
-                self.tr('VERBOSE'),
+                self.tr('Verbose'),
                 defaultValue=False
             )
         )
@@ -165,7 +150,7 @@ class ReduceBendAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 'EXCLUDE_HOLE',
-                self.tr('Exclude ho;e'),
+                self.tr('Exclude hole'),
                 defaultValue=True
             )
         )
@@ -173,7 +158,7 @@ class ReduceBendAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 'OUTPUT',
-                self.tr('OUTPUT')
+                self.tr('Reduced bend')
             )
         )
 

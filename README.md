@@ -1,30 +1,38 @@
-# GeoSim
+# geo_sim_processing
 
-GeoSim is a QGIS plugin that aims to simplify/generalize line and polygon features. It is composed of 3 tools: [Reduce Vend](#Reduce-Bend), [Chordal Axis](#Chordal-Axis) and [TopoSim](#TopoSim)
+geo_sim_processing is a QGIS plugin that aims to simplify/generalize line and polygon features. It is composed of 3 tools: [Reduce Bend](#Reduce-Bend), [Chordal Axis](#Chordal-Axis) and [Simplifier](#Simplifier)
 
 ## Requirements  
 - [QGIS](www.qgis.org) >3.14
 
-## Installation as a plugin
-...
+## QGIS plugin installation
+From the GitHub repo download the zip file of the latest tag (or the tag you whish to install) and unzip the content in the QGIS plugin directory _geo_sim_processing_ and reload the plugin geo_sim_processing.  If the _Plugin Reloader_ is not present load it from the menu Pulgins > Manage and Install Plugins 
+
+Plugin directory in Linux: /home/_usename_/.local/share/QGIS/QGIS3/profiles/default/plugins/geo_sim_processing
+
+Plugin directory in Windows: C:\Users\_usename_\AppData\Roaming\QGIS\QGIS3\profiles\default\plugins\geo_sim_processing
+
+Note: Other locations are possible but these are the default one
 
 # Reduce Bend
 
-Reduce Bend is a geospatial simplification and generalization tool for lines and polygons.  Reduce Bend is an implementation and an improvement of the algorithm described in the paper "Line Generalization Based on Analysis of Shape Characteristics, Zeshen Wang and Jean-Claude Müller, 1998" often known as "Bend Simplify" or "Wang Algorithm".  The particularity of this algorithm is that for each line it analyzes its bends (curves) and decides which one to simplify, trying to emulate what a cartographer would do manually to simplify or generalize a line.  Reduce Bend will accept lines and polygons as input.  Reduce Bend is implemented as a processing script available in QGIS Processing Toolbox.
+Reduce Bend is a geospatial simplification and generalization tool for lines and polygons.  Reduce Bend is an implementation and an improvement of the algorithm described in the paper "Line Generalization Based on Analysis of Shape Characteristics, Zeshen Wang and Jean-Claude Müller, 1998" often known as "Bend Simplify" or "Wang Algorithm".  The particularity of this algorithm is that for each line it analyzes its bends (curves) and decides which one to simplify, trying to emulate what a cartographer would do manually to simplify or generalize a line.  Reduce Bend will accept lines and polygons as input.
 
 ## Usage
 
-Input vector layer:   Input vector feature to simplify (LineString or Polygon)
+Reduce Bend is a processing script dicoverable in the QGIS Processing Tool Box under Geo Simplification
 
-Diameter tolerance:   Diameter of the minimum adjusted area bend to simplify (to remove) in ground units
+**Input vector layer**:   Input vector feature to simplify (LineString or Polygon)
 
-Verbose:              Flag for extra information
+**Diameter tolerance**:   Diameter of the minimum adjusted area bend to simplify (to remove) in ground units
 
-Exclude polygon:      Exclude (delete) polygons exteriors below the minimum adjusted area (delete also any interior holes if present)
+**Verbose**:              Flag for extra information
 
-Exclude hole:         Exclude (delete) polygon rings (interior holes) below the minimum adjusted area
+**Exclude polygon**:      Exclude (delete) polygons exteriors below the minimum adjusted area (delete also any interior holes if present)
 
-Output vector layer:  Output vector feature simplified
+**Exclude hole**:         Exclude (delete) polygon rings (interior holes) below the minimum adjusted area
+
+**Output vector layer**:  Output vector feature simplified
 
 ## Line Simplification versus Line Generalization
 
@@ -64,7 +72,6 @@ Note: For any given line or polygon ring, only those bends the simplification of
 ### Rule of thumb for the diameter
 Reduce Bend can be used for line simplifying often in the context of line generalization. The big question will often be what diameter should we use?  A good starting point is the cartographic rule of thumb -- the *.5mm on the map* -- which says that the minimumm distance between two lines should be greater than 0.5mm on a paper map. So to simplify (generalize) a line for representation at a scale of 1:50 000 for example a diameter of 25m should be a good starting point...
 
-## Known issue with GeoPackage format
 # Chordal Axis
 
 ChordalAxis is a geospatial tool that takes triangles, usually the result of a constraint Delauny trianglulation and creates a skeleton (the center line).  ChordalAxis is an improvement of the algorithm based of the paper "Rectification of the Chordal Axis Transform and a New Criterion for Shape
@@ -76,25 +83,13 @@ The skeleton (center line) is a linear feature representation of a polygonized f
 
 ## Usage
 
-usage: python Chordal_Axis.py \[-h] \[-t] \[-s] \ file
+Chordal Axis is a processing script dicoverable in the QGIS Processing Tool Box under Geo Simplification
 
-positional arguments:
+**Input vector layer**:   Input vector feature to create the chordal axis (skeleton)
 
-    file                  Input/Output Geopackage vector file to extract skeleton
+**Correction**:           Flag to correct the skeleton for small centre line, T junction and X junction. Usefull in the case of long any narrow polygon. 
 
-optional arguments:
-
-     -h, --help          Show this help message and exit
-     -t, --triangle      Name of the layer in the graphic file containing the triangle (Line string)
-     -s, --skeleton      Name of the layer to create that will contain the skeleton
-     -c, --correction    Correct the skeleton for small centre line, T junction and X junction
-
-
-Example:
-
-python chordal_axis.py -t tesselation -s skeleton road.gpkg
-
-   - Load the triangle in the layer named tesselation; create the centre line using the chordal axis and create the layer skeleton in the file road.gpkg
+**Output vector layer**:  Output vector feature for the skeleton
 
  ## How it works
 
@@ -117,9 +112,10 @@ Chordal Axis can be used for skeleton extraction and polygon to line transformat
 Figure 5
 
 
-# TopoSim
+# Simplifier
 
-TopoSim is a geospatial simplification tool for lines and polygons.  TopoSim implements [Shapely](https://pypi.org/project/Shapely/)'s *simplify* tool with parameter  *preserve_topology=True*. For line and polygon simplification Shapely implements an algorithm similar to the [Douglas Peucker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm).  The implementation preserves the topology within one feature but not between features of the same layer or from different layers.  There is also a [known bug](https://locationtech.github.io/jts/javadoc/org/locationtech/jts/simplify/TopologyPreservingSimplifier.html) where the algorithm may create invalid topologies if there are components which are small relative to the tolerance value.   In particular, if a small interior hole is very close to an edge, simplification may result in the hole being moved outside the polygon (figure 6a). Similarly, a small polygon close to a larger one may end up being swallowed into the larger polygon.  Toposim will detect situations like figure 6b where one or more rings (interior parts) fall outside the polygon after being simplified and make the polygon invalid. The algoritm will remove (delete) these ring(s) so the feature remains valid after simplification.
+Simplify is a geospatial simplification tool for lines and polygons. Simplify implements QGIS's QgsTopologyPreservingSimplifier tool. For line and polygon simplification that tool implements an algorithm similar to the Douglas Peucker algorithm. The implementation preserves the topology within one vector feature but not between vector features. There is also a known bug where the algorithm may create invalid topologies if there are components which are small relative to the tolerance value. In particular, if a small interior hole is very close to an edge, the resulting simplification may result in the hole being moved outside the polygon. This algorithm will detect these situations where one or more rings (interior parts) fall outside the polygon after being simplified and make the polygon invalid. The algoritm will remove (delete) these ring(s) so the feature remains valid after simplification.
+
 
 Note: While most GIS tools will handle and display invalid geometries like figure 6b, some spatial operation will not be allowed and this is why it's important to keep validity of the geometry after a spatial operation.
 
@@ -130,32 +126,13 @@ Note: While most GIS tools will handle and display invalid geometries like figur
 
 ## Usage
 
-usage: python toposim.py \[-h] \[-t tolerance | -tl tlayer] in_file out_file
+Simplifier is a processing script dicoverable in the QGIS Processing Tool Box under Geo Simplification
 
-positional arguments:
+**Input layer**: The Line String or Polygon layer to simplify
 
-    in_file               Input Geopackage vector file to simplify (GPKG)
-    out_file              Output Geopackage vector file simplified (GPKG)
+**Tolerance**: The tolerance in ground unit used to simplify the line
 
-optional arguments:
-
-     -t , --tolerance         Tolerance for the line simplification (usage similar to Douglas Peucker)     
-     -h, --help               Show this help message and exit
-     -tl, --tlayer            Specify the tolerance for the line simplification per layer name (ex: -tl Road=5,Hydro=7.5)
-
-Examples:
-
-```python
-python toposim.py -t 3 in_file.gpkg out_file.gpkh
-```
-
-Simplify each feature in *in_file.gpkg* with a tolerance of 3 and create *out_file.gpkg*
-
-```python
-python toposim.py -tl Road=3,Lake=5 in_file.gpkg out_file.gpkh
-```
-
-Simplify each feature of the Road layer with a tolerance of 3 and Lake layers with a tolerance of 5.
+**Simplified**: The simplified Line String or Polygon Layer
 
 ## How it works
 

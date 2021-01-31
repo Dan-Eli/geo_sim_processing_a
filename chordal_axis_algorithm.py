@@ -108,7 +108,7 @@ class ChordalAxisAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 'INPUT',
-                self.tr('Input vector layer'),
+                self.tr('Input layer'),
                 types=[QgsProcessing.TypeVectorAnyGeometry]
             )
         )
@@ -116,7 +116,7 @@ class ChordalAxisAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 'CORRECTION',
-                self.tr('CORRECTION'),
+                self.tr('Correction'),
                 defaultValue=False
             )
         )
@@ -124,7 +124,7 @@ class ChordalAxisAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 'OUTPUT',
-                self.tr('OUTPUT')
+                self.tr('Chordal axis')
             )
         )
 
