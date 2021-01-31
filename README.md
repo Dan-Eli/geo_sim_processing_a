@@ -3,7 +3,7 @@
 geo_sim_processing is a QGIS plugin that aims to simplify/generalize line and polygon features. It is composed of 3 tools: [Reduce Bend](#Reduce-Bend), [Chordal Axis](#Chordal-Axis) and [Simplifier](#Simplifier)
 
 ## Requirements  
-- [QGIS](www.qgis.org) >3.14
+- [QGIS](https://www.qgis.org) >3.14
 
 ## QGIS plugin installation
 From the GitHub repo download the zip file of the latest tag (or the tag you whish to install) and unzip the content in the QGIS plugin directory _geo_sim_processing_ and reload the plugin geo_sim_processing.  If the _Plugin Reloader_ is not present load it from the menu Pulgins > Manage and Install Plugins 
