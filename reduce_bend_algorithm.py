@@ -162,7 +162,6 @@ class ReduceBendAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-
     def processAlgorithm(self, parameters, context, feedback):
         """
        
