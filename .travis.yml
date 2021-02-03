@@ -14,7 +14,7 @@ install:
   - conda create --name qgis_316 python=3.8
   - conda activate qgis_316
   - conda install qgis=3.16.3 --channel conda-forge
-  - conda activate qgis_316
+  - source activate qgis_316
 script:
 # Test Reduce Bend 
 # -------------
