@@ -18,5 +18,6 @@ script:
 # ----------------
 # Remove file from previous execution
 #  - rm -f ./data/test_sherbend_out.gpkg
+#
 # Execute unittest
   - python chordal_axis_unittest.py
