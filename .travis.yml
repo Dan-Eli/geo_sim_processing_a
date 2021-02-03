@@ -20,4 +20,4 @@ script:
 #  - rm -f ./data/test_sherbend_out.gpkg
 #
 # Execute unittest
-  - python chordal_axis_unittest.py
+  - python -m unittest chordal_axis_unittest.py
