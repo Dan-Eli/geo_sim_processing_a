@@ -11,7 +11,6 @@ install:
   - conda config --prepend channels conda-forge
   - conda update -q conda
   - conda info -a
-  - conda create --name qgis_316 python=3.8
   - conda create --name qgis_316 python=3.8 qgis=3.16.3 --channel conda-forge
   - conda activate qgis_316
   - source activate qgis_316
