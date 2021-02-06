@@ -126,6 +126,7 @@ class Test(unittest.TestCase):
         qgs_feature_out = build_and_launch(title,[qgs_geom0], 30)
         out_qgs_geom0 = create_polygon([(10,0), (0,0), (0,10), (10,10), (10,0)], [])
         val0 = out_qgs_geom0.equals(qgs_feature_out[0])
+        print (qgs_feature_out[0])
         self.assertTrue (val0, title)
 
     def test_case05(self):
