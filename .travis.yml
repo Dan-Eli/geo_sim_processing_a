@@ -42,7 +42,7 @@ script:
 #
 # Execute unittest
   - conda activate qgis_316
-  - QT_QPA_PLATFORM=minimal
+#  - QT_QPA_PLATFORM=minimal
 #  - export DISPLAY=:1.0
 #  - pip install opencv-python==4.3.0.36
   - python -m unittest reduce_bend_unittest.py
