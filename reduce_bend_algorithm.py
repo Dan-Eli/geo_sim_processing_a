@@ -1216,6 +1216,7 @@ class ReduceBend():
                 self.feedback.setProgress(max(1, int(len(rb_geoms_done)) * nbr_geoms))
             nbr_bend_reduced = 0
             nbr_bend_detected = 0
+            print ("len(self.rb_geoms): ", len(self.rb_geoms))
             for rb_geom in self.rb_geoms:
                 print ("Loop geom 1...")
                 if self.feedback.isCanceled(): break
