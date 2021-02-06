@@ -1276,6 +1276,7 @@ class ReduceBend():
     def flag_bend_to_reduce(self, rb_geom, diameter_tol):
         # Minimum adjusted area used to find bend to reduce
         min_adj_area = ReduceBend.calculate_min_adj_area(diameter_tol)
+        print ("min_adj_area", min_adj_area)
 
         if rb_geom.is_closed and len(rb_geom.bends) >= 3:
             # The closed line start/end point lie on a bend that do not need to be reduced
@@ -1284,6 +1285,7 @@ class ReduceBend():
 
         lst_bends = [(bend.adj_area, i) for i, bend in enumerate(rb_geom.bends) if bend.area < min_adj_area]
         lst_bends.sort(key=lambda item: item[0])
+        print ("lst_bends", lst_bends)
 
         start = 0
         end = len(rb_geom.bends) - 1
