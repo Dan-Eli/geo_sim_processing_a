@@ -37,7 +37,7 @@ install:
 
 script:
 # Test Reduce Bend
-# ---------------- 
+# ----------------
 # Remove file from previous execution
 #  - rm -f ./data/test_sherbend_out.gpkg
 #
