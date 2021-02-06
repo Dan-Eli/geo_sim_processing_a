@@ -45,4 +45,4 @@ script:
   - QT_QPA_PLATFORM=minimal
 #  - export DISPLAY=:1.0
 #  - pip install opencv-python==4.3.0.36
-  - python -m unittest chordal_axis_unittest.py
+  - python -m unittest reduce_bend_unittest.py
