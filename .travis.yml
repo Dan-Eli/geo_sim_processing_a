@@ -42,4 +42,5 @@ script:
 #
 # Execute unittest
   - conda activate qgis_316
+  - QT_DEBUG_PLUGINS="1" python chordal_axis_unittest.py
   - python -m unittest chordal_axis_unittest.py
