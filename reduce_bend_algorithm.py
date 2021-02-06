@@ -1199,6 +1199,7 @@ class ReduceBend():
 
 
     def _manage_reduce_bend(self):
+        """g"""
 
         rb_geoms_done = []
         nbr_pass = 0
