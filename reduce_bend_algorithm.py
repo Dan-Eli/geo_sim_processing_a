@@ -1217,7 +1217,9 @@ class ReduceBend():
             nbr_bend_reduced = 0
             nbr_bend_detected = 0
             for rb_geom in self.rb_geoms:
+                print ("Loop geom 1...")
                 if self.feedback.isCanceled(): break
+                print("Loop geom 2...")
                 nbr_bend_detected += self.manage_bend_creation(nbr_pass, rb_geom, self.diameter_tol)
                 self.flag_bend_to_reduce(rb_geom, current_diameter_tol)
                 nbr_bend_reduced += self.process_bends(rb_geom)
