@@ -339,12 +339,12 @@ class Test(unittest.TestCase):
 
 
 # Supply path to qgis install location
-QgsApplication.setPrefixPath("/usr/bin/qgis", False)
+QgsApplication.setPrefixPath("/usr/bin/qgis", True)
 
 # profile_folder = 'C:\\Users\\berge\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\test12'
-profile_folder = '.'
+#profile_folder = '.'
 # Create a reference to the QgsApplication.  Setting the second argument to False disables the GUI.
-app = QgsApplication([], False, profile_folder)
+app = QgsApplication([], False)
 
 # Load providers
 app.initQgis()
