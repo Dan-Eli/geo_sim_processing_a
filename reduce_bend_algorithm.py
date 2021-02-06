@@ -929,6 +929,7 @@ class ReduceBend():
 
         rb = ReduceBend(qgs_in_features, diameter_tol, feedback, flag_del_outer, flag_del_inner, validate_structure)
         results = rb.reduce_bends()
+        print ("diamter_tol=", diameter_tol)
 
         return results
 
@@ -1207,6 +1208,7 @@ class ReduceBend():
         nbr_geoms = 100.0 / len(self.rb_geoms) if len(self.rb_geoms) >= 1 else 0
         while True:
             current_diameter_tol = self.diameter_tol * min(nbr_pass+1, min_pass)/float(min_pass)
+            print("current_diameter_tol", current_diameter_tol)
             self.remove_rb_geoms_done(rb_geoms_done)  # Remove feature done to accelerate process
             if nbr_pass == 0:
                 self.feedback.setProgress(1) # Set the progress bar
@@ -1376,6 +1378,7 @@ class ReduceBend():
         for ind in reversed(range(len(rb_geom.bends))):
             bend = rb_geom.bends[ind]
             if bend.to_reduce:
+                print("bend à réduire...")
                 # Check spatial constraints
                 spatial_constraints = self.validate_spatial_constraints(ind, rb_geom)
                 if spatial_constraints:
