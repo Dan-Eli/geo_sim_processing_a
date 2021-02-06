@@ -33,7 +33,7 @@ install:
 #  - conda activate qgis_316
   - pwd
   - ls -l
-#  - python -m pip install .
+#  - python -m pip install . 
 
 script:
 # Test Reduce Bend
