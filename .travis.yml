@@ -43,4 +43,5 @@ script:
 # Execute unittest
   - conda activate qgis_316
   - export DISPLAY=:1.0
+  - pip install opencv-python==4.3.0.36
   - python -m unittest chordal_axis_unittest.py
