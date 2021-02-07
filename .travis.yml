@@ -24,11 +24,9 @@ script:
 # Activate QGIS conda environment
   - conda activate qgis_316
 #
-# Need to execute with QT_QPA_PLATFORM=offscreen otherwise QGIS does not start
+# Need to execute the metric with QT_QPA_PLATFORM=offscreen otherwise QGIS does not start
 # Execute unittest for reduce bend 
-#  - QT_QPA_PLATFORM=offscreen python -m unittest reduce_bend_unittest.py
-  - QT_QPA_PLATFORM=offscreen 
-  - python -m unittest reduce_bend_unittest.py
+  - QT_QPA_PLATFORM=offscreen python -m unittest reduce_bend_unittest.py
 #  
 # Execute unittest for chordal axis 
   - QT_QPA_PLATFORM=offscreen python -m unittest chordal_axis_unittest.py
