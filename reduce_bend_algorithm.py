@@ -1105,6 +1105,7 @@ class ReduceBend():
         for rb_feature in self.rb_features:
             rb_geoms += rb_feature.get_rb_geom()
             print ("ajout RBGeom")
+            print ("is simplest: ", rb_geoms[-1].is_simplest)
 
 
         # Remove co-linear and duplicate nodes
