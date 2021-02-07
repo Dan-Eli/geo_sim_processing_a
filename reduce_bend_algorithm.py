@@ -1023,11 +1023,13 @@ class ReduceBend():
         self.rb_results = RbResults()
 
         # Create the list of RbPolygon, RbLineString and RbPoint to process
+        print ("len(self.qgs_in_features): ", len(self.qgs_in_features))
         self.rb_features = self.create_rb_feature()
         self.rb_results.in_nbr_features = len(self.qgs_in_features)
 
         # Pre process the LineString: remove to close point and co-linear points
         self.rb_geoms = self.pre_reduction_process()
+        print ("len(self.rb_geoms): ", len(self.rb_geoms))
 
         # Create the RbCollection a spatial index to accelerate search
         self.rb_collection = RbCollection(self.rb_results)
