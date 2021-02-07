@@ -719,8 +719,11 @@ class RbGeom:
                 self.is_simplest = True  # Zero length line (degenerated). Do not try to simplify
         else:
             # It's a polygon
+            qgs_polygon = QgsPolygon(qgs_geometry.clone())
+            print("qgs_polygonarea(): ", qgs_polygon.area())
             print ("qgs_geometry.sumUpArea(): ", qgs_geometry.sumUpArea())
-            if abs(qgs_geometry.sumUpArea()) > ReduceBend.ZERO_RELATIVE:
+            if qgs_polygon.area() > ReduceBend.ZERO_RELATIVE:
+            #if abs(qgs_geometry.sumUpArea()) > ReduceBend.ZERO_RELATIVE:
                 self.is_closed = True
                 self.need_pivot = True
             else:
