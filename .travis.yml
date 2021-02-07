@@ -46,5 +46,5 @@ script:
   - QT_QPA_PLATFORM=offscreen python -m unittest reduce_bend_unittest.py
 #  
 # Execute unittest for chordal axis 
-  - QT_QPA_PLATFORM=offscreen python -m unittest reduce_bend_unittest.py
+  - QT_QPA_PLATFORM=offscreen python -m unittest chordal_axis_unittest.py
 
