@@ -21,7 +21,7 @@ install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - source "$HOME/miniconda/etc/profile.d/conda.sh"
-  - hash -r
+  - hash -r 
   - conda config --set always_yes yes --set changeps1 no
 #  - conda config --set always_yes yes
   - conda update -q conda
@@ -42,7 +42,7 @@ script:
 #  - rm -f ./data/test_sherbend_out.gpkg
 #
 # Execute unittest
-  - conda activate qgis_316   
+  - conda activate qgis_316
   - QT_QPA_PLATFORM=offscreen python -m unittest reduce_bend_unittest.py 
 #  - export DISPLAY=:1.0
 #  - pip install opencv-python==4.3.0.36
