@@ -42,7 +42,7 @@ script:
 #  - rm -f ./data/test_sherbend_out.gpkg
 #
 # Execute unittest
-  - conda activate qgis_316  
+  - conda activate qgis_316
   - QT_QPA_PLATFORM=offscreen python -m unittest reduce_bend_unittest.py 
 #  - export DISPLAY=:1.0
 #  - pip install opencv-python==4.3.0.36
