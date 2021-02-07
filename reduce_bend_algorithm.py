@@ -704,6 +704,7 @@ class RbGeom:
         self.bends = []
         self.nbr_bend_reduced = 0
         # Set some variable depending on the attribute of the feature
+        print ('self.original_geom_type ', self.original_geom_type, QgsWkbTypes.Point, QgsWkbTypes.LineString, QgsWkbTypes.Polygon)
         if self.original_geom_type == QgsWkbTypes.Point:
             self.is_simplest = True  # A point cannot be simplified
         elif self.original_geom_type == QgsWkbTypes.LineString:
@@ -718,6 +719,7 @@ class RbGeom:
                 self.is_simplest = True  # Zero length line (degenerated). Do not try to simplify
         else:
             # It's a polygon
+            print ("qgs_geometry.sumUpArea(): ", qgs_geometry.sumUpArea())
             if abs(qgs_geometry.sumUpArea()) > ReduceBend.ZERO_RELATIVE:
                 self.is_closed = True
                 self.need_pivot = True
