@@ -704,7 +704,6 @@ class RbGeom:
         self.bends = []
         self.nbr_bend_reduced = 0
         # Set some variable depending on the attribute of the feature
-        print ('self.original_geom_type ', self.original_geom_type, QgsWkbTypes.Point, QgsWkbTypes.LineString, QgsWkbTypes.Polygon)
         if self.original_geom_type == QgsWkbTypes.Point:
             self.is_simplest = True  # A point cannot be simplified
         elif self.original_geom_type == QgsWkbTypes.LineString:
@@ -719,9 +718,7 @@ class RbGeom:
                 self.is_simplest = True  # Zero length line (degenerated). Do not try to simplify
         else:
             # It's a polygon
-            qgs_polygon = QgsPolygon(qgs_geometry.clone())
-            print("qgs_polygonarea(): ", qgs_polygon.area())
-            print ("qgs_geometry.sumUpArea(): ", qgs_geometry.sumUpArea())
+            qgs_polygon = QgsPolygon(qgs_geometry.clone())  # Create QgsPolygon to calculate area
             if qgs_polygon.area() > ReduceBend.ZERO_RELATIVE:
             #if abs(qgs_geometry.sumUpArea()) > ReduceBend.ZERO_RELATIVE:
                 self.is_closed = True
@@ -934,7 +931,6 @@ class ReduceBend():
 
         rb = ReduceBend(qgs_in_features, diameter_tol, feedback, flag_del_outer, flag_del_inner, validate_structure)
         results = rb.reduce_bends()
-        print ("diamter_tol=", diameter_tol)
 
         return results
 
@@ -1028,13 +1024,11 @@ class ReduceBend():
         self.rb_results = RbResults()
 
         # Create the list of RbPolygon, RbLineString and RbPoint to process
-        print ("len(self.qgs_in_features): ", len(self.qgs_in_features))
         self.rb_features = self.create_rb_feature()
         self.rb_results.in_nbr_features = len(self.qgs_in_features)
 
         # Pre process the LineString: remove to close point and co-linear points
         self.rb_geoms = self.pre_reduction_process()
-        print ("len(self.rb_geoms): ", len(self.rb_geoms))
 
         # Create the RbCollection a spatial index to accelerate search
         self.rb_collection = RbCollection(self.rb_results)
@@ -1049,7 +1043,6 @@ class ReduceBend():
         # Set return values
         self.rb_results.out_nbr_features = len(qgs_features_out)
         self.rb_results.qgs_features_out = qgs_features_out
-        print ("len(qgs_features_out): ", len(qgs_features_out))
 
         # Validate inner spatial structure. For debug purpose only
         if self.validate_structure:
@@ -1109,9 +1102,6 @@ class ReduceBend():
         rb_geoms = []
         for rb_feature in self.rb_features:
             rb_geoms += rb_feature.get_rb_geom()
-            print ("ajout RBGeom")
-            print ("is simplest: ", rb_geoms[-1].is_simplest)
-
 
         # Remove co-linear and duplicate nodes
         for rb_geom in rb_geoms:
@@ -1218,7 +1208,6 @@ class ReduceBend():
         nbr_geoms = 100.0 / len(self.rb_geoms) if len(self.rb_geoms) >= 1 else 0
         while True:
             current_diameter_tol = self.diameter_tol * min(nbr_pass+1, min_pass)/float(min_pass)
-            print("current_diameter_tol", current_diameter_tol)
             self.remove_rb_geoms_done(rb_geoms_done)  # Remove feature done to accelerate process
             if nbr_pass == 0:
                 self.feedback.setProgress(1) # Set the progress bar
@@ -1226,11 +1215,8 @@ class ReduceBend():
                 self.feedback.setProgress(max(1, int(len(rb_geoms_done)) * nbr_geoms))
             nbr_bend_reduced = 0
             nbr_bend_detected = 0
-            print ("len(self.rb_geoms): ", len(self.rb_geoms))
             for rb_geom in self.rb_geoms:
-                print ("Loop geom 1...")
                 if self.feedback.isCanceled(): break
-                print("Loop geom 2...")
                 nbr_bend_detected += self.manage_bend_creation(nbr_pass, rb_geom, self.diameter_tol)
                 self.flag_bend_to_reduce(rb_geom, current_diameter_tol)
                 nbr_bend_reduced += self.process_bends(rb_geom)
@@ -1289,7 +1275,6 @@ class ReduceBend():
     def flag_bend_to_reduce(self, rb_geom, diameter_tol):
         # Minimum adjusted area used to find bend to reduce
         min_adj_area = ReduceBend.calculate_min_adj_area(diameter_tol)
-        print ("min_adj_area", min_adj_area)
 
         if rb_geom.is_closed and len(rb_geom.bends) >= 3:
             # The closed line start/end point lie on a bend that do not need to be reduced
@@ -1298,7 +1283,7 @@ class ReduceBend():
 
         lst_bends = [(bend.adj_area, i) for i, bend in enumerate(rb_geom.bends) if bend.area < min_adj_area]
         lst_bends.sort(key=lambda item: item[0])
-        print ("lst_bends", lst_bends)
+
 
         start = 0
         end = len(rb_geom.bends) - 1
@@ -1393,7 +1378,6 @@ class ReduceBend():
         for ind in reversed(range(len(rb_geom.bends))):
             bend = rb_geom.bends[ind]
             if bend.to_reduce:
-                print("bend à réduire...")
                 # Check spatial constraints
                 spatial_constraints = self.validate_spatial_constraints(ind, rb_geom)
                 if spatial_constraints:
