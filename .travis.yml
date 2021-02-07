@@ -36,14 +36,15 @@ install:
 #  - python -m pip install .
 
 script:
-# Test Reduce Bend
-# ---------------- 
-# Remove file from previous execution
-#  - rm -f ./data/test_sherbend_out.gpkg
+# Unitest
+# -------
 #
-# Execute unittest
+# Activate QGIS conda environment
   - conda activate qgis_316
+# 
+# Execute unittest for reduce bend 
   - QT_QPA_PLATFORM=offscreen python -m unittest reduce_bend_unittest.py
-#  - export DISPLAY=:1.0
-#  - pip install opencv-python==4.3.0.36
-#  - python -m unittest reduce_bend_unittest.py
+#  
+# Execute unittest for chordal axis 
+  - QT_QPA_PLATFORM=offscreen python -m unittest reduce_bend_unittest.py
+
