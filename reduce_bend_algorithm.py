@@ -1044,6 +1044,7 @@ class ReduceBend():
         # Set return values
         self.rb_results.out_nbr_features = len(qgs_features_out)
         self.rb_results.qgs_features_out = qgs_features_out
+        print ("len(qgs_features_out): ", len(qgs_features_out))
 
         # Validate inner spatial structure. For debug purpose only
         if self.validate_structure:
@@ -1103,6 +1104,7 @@ class ReduceBend():
         rb_geoms = []
         for rb_feature in self.rb_features:
             rb_geoms += rb_feature.get_rb_geom()
+            print ("ajout RBGeom")
 
 
         # Remove co-linear and duplicate nodes
