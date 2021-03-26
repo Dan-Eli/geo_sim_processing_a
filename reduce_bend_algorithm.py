@@ -536,11 +536,11 @@ class RbCollection:
         :rtype: tuple of 2 lists
         """
 
-        zero = ReduceBend.ZERO_RELATIVE
+        #zero = ReduceBend.ZERO_RELATIVE
         qgs_multi_ls_with_itself = QgsMultiLineString()
         qgs_multi_ls_with_others = QgsMultiLineString()
         qgs_points = []
-        qgs_rectangle.grow(zero*100)  # Always increase the b_box to avoid degenerated b_box
+        qgs_rectangle.grow(ReduceBend.ZERO_RELATIVE*100.)  # Always increase the b_box to avoid degenerated b_box
         qgs_segment_ids = self._spatial_index.intersects(qgs_rectangle)
         for qgs_segment_id in qgs_segment_ids:
             qgs_geom_segment = self._spatial_index.geometry(qgs_segment_id)
@@ -549,8 +549,9 @@ class RbCollection:
             else:
                 qgs_line_string = qgs_geom_segment.constGet().clone()
                 if self._dict_qgs_segment[qgs_segment_id] == qgs_geom_id:
-                    if qgs_geom_subline.distance(QgsGeometry(qgs_geom_segment.vertexAt(0))) > zero or \
-                       qgs_geom_subline.distance(QgsGeometry(qgs_geom_segment.vertexAt(1))) > zero:
+#                    if qgs_geom_subline.distance(QgsGeometry(qgs_geom_segment.vertexAt(0))) > zero or \
+#                       qgs_geom_subline.distance(QgsGeometry(qgs_geom_segment.vertexAt(1))) > zero:
+                    if not qgs_geom_segment.within(qgs_geom_subline):
                         qgs_multi_ls_with_itself.addGeometry(qgs_line_string)
                 else:
                     qgs_multi_ls_with_others.addGeometry(qgs_line_string)
@@ -781,7 +782,7 @@ class Bend:
     """Define a Bend object which is the reduction goal of this algorithm"""
 
     __slots__ = ('i', 'j', 'area', 'perimeter', 'adj_area', 'to_reduce', 'qgs_geom_new_subline',
-                 'qgs_geom_old_subline', 'qgs_geom_new_subline_trimmed', 'orientation', 'qgs_geom_bend', 'direction')
+                 'qgs_geom_old_subline', 'orientation', 'qgs_geom_bend', 'direction')
 
     def __init__(self, i, j, qgs_geom):
         """Constructor that initialize a Bend object.
@@ -804,29 +805,6 @@ class Bend:
         self.adj_area = ReduceBend.calculate_adj_area(self.area, self.perimeter)
         self.to_reduce = False
         self.direction = None
-        self.qgs_geom_new_subline_trimmed = None
-
-    def get_new_subline_trimmed(self):
-        """Create the new line that will replace the bend but just a little bit shorter.
-
-       :return: The new line to close the polygon
-       :rtype: QgsGeometry
-       """
-
-        if self.qgs_geom_new_subline_trimmed is None:
-            qgs_ls_new_subline = self.qgs_geom_new_subline.constGet()
-            if qgs_ls_new_subline.length() >= ReduceBend.ZERO_RELATIVE*100.:
-                qgs_pnt_i_trimmed = qgs_ls_new_subline.interpolatePoint(ReduceBend.ZERO_RELATIVE)
-                length = qgs_ls_new_subline.length() - ReduceBend.ZERO_RELATIVE
-                qgs_pnt_j_trimmed = qgs_ls_new_subline.interpolatePoint(length)
-                qgs_ls_new_subline_trimmed = QgsLineString([qgs_pnt_i_trimmed, qgs_pnt_j_trimmed])
-            else:
-                # Zero or near zero length LineString probably an error in tne input data
-                qgs_ls_new_subline_trimmed = qgs_ls_new_subline.clone()
-
-            self.qgs_geom_new_subline_trimmed = QgsGeometry(qgs_ls_new_subline_trimmed.clone())
-
-        return self.qgs_geom_new_subline_trimmed
 
 
 class BendReduced:
@@ -838,7 +816,7 @@ class BendReduced:
 
     __slots__ = ('rb_geom', 'qgs_point_start', 'qgs_point_end', 'qgs_geom_bend', 'qgs_geom_old_subline',
                  'i_previous', 'i', 'j_after', 'j', 'is_line_smoothable', 'qgs_geom_smooth_line',
-                 'qgs_geom_trimmed_smooth_line', 'qgs_geom_smooth_polygon')
+                 'qgs_geom_smooth_polygon')
 
     def __init__(self, rb_geom, qgs_point_start, qgs_point_end, qgs_geom_bend):
         """Constructor that initialize a BendReduced object
@@ -856,7 +834,6 @@ class BendReduced:
         self.qgs_geom_old_subline = QgsGeometry(QgsLineString([qgs_point_start, qgs_point_end]))
         self.qgs_geom_smooth_line = None
         self.qgs_geom_smooth_polygon = None
-        self.qgs_geom_trimmed_smooth_line = None
         self.i_previous = None
         self.i = None
         self.j = None
@@ -918,22 +895,6 @@ class BendReduced:
             ind = None
 
         return ind
-
-    def _calculate_trimmed_smooth_line(self, epsilon):
-        """Trim a line string by near 0 epsilon
-
-        :param: epsilon: Float value representing near zero value
-        """
-
-        qgs_ls_smooth = self.qgs_geom_smooth_line.constGet()
-        qgs_pnts = qgs_ls_smooth.points()
-        qgs_pnt0 = qgs_ls_smooth.interpolatePoint(epsilon)
-        qgs_pnt1 = qgs_ls_smooth.interpolatePoint(qgs_ls_smooth.length()-epsilon)
-        qgs_pnts[0] = qgs_pnt0
-        qgs_pnts[-1] = qgs_pnt1
-        self.qgs_geom_trimmed_smooth_line = QgsGeometry(QgsLineString(qgs_pnts))
-
-        return
 
     def _calculate_smooth_line(self):
         """This method will transform a straight subline into a "smooth" sub line
@@ -1057,7 +1018,6 @@ class BendReduced:
 
         if self.is_line_smoothable:
             self._calculate_smooth_line()
-            self._calculate_trimmed_smooth_line(ReduceBend.ZERO_RELATIVE)
             self._resolve_non_valid_polygon(ReduceBend.ZERO_RELATIVE)
 
         return
@@ -1455,27 +1415,31 @@ class ReduceBend:
         return min_adj_area
 
     @staticmethod
-    def validate_simplicity(qgs_geoms_with_itself, qgs_geom_new_subline_trimmed):
+    def validate_simplicity(qgs_geoms_with_itself, qgs_geom_new_subline):
         """Validate the simplictity constraint
 
         This constraint assure that the new sub line is not intersecting with any other segment of the same line
 
         :param: qgs_geoms_with_itself: List of QgsLineString segment to verify for self intersection
-        :param: qgs_geom_new_subline_trimmed: New QgsLineString replacement sub line. This subline is trimmed by
-        a very small epsilon to facilitate the spatial relationship
+        :param: qgs_geom_new_subline: New QgsLineString replacement sub line.
         :return: Flag indicating if the spatial constraint is valid
         :rtype: Bool
         """
 
         constraints_valid = True
+        geom_engine_subline = QgsGeometry.createGeometryEngine(qgs_geom_new_subline.constGet().clone())
         for qgs_geom_potential in qgs_geoms_with_itself:
-            if qgs_geom_new_subline_trimmed.disjoint(qgs_geom_potential):
-                # Everything is OK
-                pass
-            else:
-                # The new sub line intersect the line itself. The result would create a non OGC simple line
+            de_9IM_pattern = geom_engine_subline.relate(qgs_geom_potential.constGet().clone())
+            # de_9IM_pattern[0] == '0' means that their interiors intersect (crosses)
+            # de_9IM_pattern[1] == '0' means that one extremity is touching the interior of the other (touches)
+            if de_9IM_pattern[0] == '0' or de_9IM_pattern[1] == '0':
+                # The new sub line intersect or touch with itself. The result would create a non OGC simple line
                 constraints_valid = False
                 break
+            else:
+                # Everything is OK
+                pass
+
 
         return constraints_valid
 
@@ -1486,7 +1450,7 @@ class ReduceBend:
         This constraint assure that the new sub line is not intersecting with any other lines (not itself)
 
         :param: qgs_geoms_with_others: List of QgsLineString segment to verify for intersection
-        :param: qgs_geom_new_subline_trimmed: New QgsLineString replacement sub line.
+        :param: qgs_geom_new_subline: New QgsLineString replacement sub line.
         :return: Flag indicating if the spatial constraint is valid
         :rtype: Bool
         """
@@ -1561,10 +1525,10 @@ class ReduceBend:
         """
 
         #  Code used for the profiler (uncomment if needed)
-#        import cProfile, pstats, io
-#        from pstats import SortKey
-#        pr = cProfile.Profile()
-#        pr.enable()
+        import cProfile, pstats, io
+        from pstats import SortKey
+        pr = cProfile.Profile()
+        pr.enable()
 
         # Calculates the epsilon and initialize some stats and results value
         self.eps = Epsilon(self.qgs_in_features)
@@ -1601,12 +1565,12 @@ class ReduceBend:
             self.rb_collection.validate_integrity(self.rb_geoms)
 
         #  Code used for the profiler (uncomment if needed)
-#        pr.disable()
-#        s = io.StringIO()
-#        sortby = SortKey.CUMULATIVE
-#        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-#        ps.print_stats()
-#        print(s.getvalue())
+        pr.disable()
+        s = io.StringIO()
+        sortby = SortKey.CUMULATIVE
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print(s.getvalue())
 
         return self.rb_results
 
@@ -1781,23 +1745,29 @@ class ReduceBend:
 
         constraints_valid = False
         for alternate_bend in alternate_bends:
-            qgs_geom_new_subline_trimmed = alternate_bend.get_new_subline_trimmed()
             b_box = alternate_bend.qgs_geom_bend.boundingBox()
             qgs_geoms_with_itself, qgs_geoms_with_others = \
                 self.rb_collection.get_segment_intersect(rb_geom.id, b_box, alternate_bend.qgs_geom_old_subline)
 
             new_bend_ok = True
+
+            geom_engine_subline = QgsGeometry.createGeometryEngine(alternate_bend.qgs_geom_new_subline.constGet().clone())
             for qgs_geom_potential in qgs_geoms_with_itself:
-                if qgs_geom_new_subline_trimmed.disjoint(qgs_geom_potential):
-                    # Everything is OK
-                    pass
-                else:
+                de_9IM_pattern = geom_engine_subline.relate(qgs_geom_potential.constGet().clone())
+                # de_9IM_pattern[0] == '0' means that their interiors intersect (crosses)
+                # de_9IM_pattern[1] == '0' means that one extremity is touching the interior of the other (touches)
+                if de_9IM_pattern[0] == '0' or de_9IM_pattern[1] == '0':
+                    # The new sub line intersect or touch with itself. The result would create a non OGC simple line
                     new_bend_ok = False
                     break
+                else:
+                    # Everything is OK
+                    pass
+
             if new_bend_ok:
                 rb_geom.bends[ind] = alternate_bend  # Reset the bend with the alternate bend
                 constraints_valid = True
-                break  # Mo need to process the next alternate bend
+                break  # No need to process the next alternate bend
 
         return constraints_valid
 
@@ -1833,10 +1803,7 @@ class ReduceBend:
         # First: check if the bend reduce line string is an OGC simple line
         # We test with a tiny smaller line to ease the testing and false positive error
         if bend.qgs_geom_new_subline.length() >= ReduceBend.ZERO_RELATIVE:
-            qgs_geom_new_subline_trimmed = bend.get_new_subline_trimmed()
-
-            constraints_valid = ReduceBend.validate_simplicity(qgs_geoms_with_itself, qgs_geom_new_subline_trimmed)
-
+            constraints_valid = ReduceBend.validate_simplicity(qgs_geoms_with_itself, bend.qgs_geom_new_subline)
             if not constraints_valid:
                 # The bend reduction caused self intersection; try to find an alternate bend
                 alternate_bends = self.find_alternate_bends(ind, rb_geom)
@@ -1889,7 +1856,7 @@ class ReduceBend:
         # First: check if the bend reduce line string is an OGC simple line
         # We test with a tiny smaller line to ease the testing and false positive error
         constraints_valid = ReduceBend.validate_simplicity(qgs_geoms_with_itself,
-                                                           reduced_bend.qgs_geom_trimmed_smooth_line)
+                                                           reduced_bend.qgs_geom_smooth_line)
 
         # Second: check that the new line does not intersect any other line or points
         if constraints_valid:
