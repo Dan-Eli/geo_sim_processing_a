@@ -441,18 +441,16 @@ class RbCollection:
     QgsSpatialIndex class is used to store and retrieve the features.
     """
 
-    __slots__ = ('_spatial_index', '_dict_qgs_rb_geom', '_dict_qgs_segment', 'rb_results', '_id_qgs_segment')
+    __slots__ = ('_spatial_index', '_dict_qgs_rb_geom', '_dict_qgs_segment', '_id_qgs_segment')
 
     def __init__(self, rb_results):
         """Constructor that initialize the RbCollection.
 
-        :param RbResults rb_results: Object containing the results and statistics of the execution
         """
 
         self._spatial_index = QgsSpatialIndex(flags=QgsSpatialIndex.FlagStoreFeatureGeometries)
         self._dict_qgs_segment = {}  # Contains a reference to the original geometry
         self._id_qgs_segment = 0
-        self.rb_results = rb_results
 
     def _get_next_id_segment(self):
         """Increment the id of the segment.
