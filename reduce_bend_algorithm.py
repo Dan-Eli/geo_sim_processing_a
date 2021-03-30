@@ -520,7 +520,7 @@ class RbCollection:
 
         qgs_geoms_with_itself = []
         qgs_geoms_with_others = []
-        qgs_rectangle.grow(ReduceBend.ZERO_RELATIVE*100.)  # Always increase the b_box to avoid degenerated b_box
+        qgs_rectangle.grow(Epsilon.ZERO_RELATIVE*100.)  # Always increase the b_box to avoid degenerated b_box
         qgs_segment_ids = self._spatial_index.intersects(qgs_rectangle)
         for qgs_segment_id in qgs_segment_ids:
             qgs_geom_segment = self._spatial_index.geometry(qgs_segment_id)
@@ -548,13 +548,13 @@ class RbCollection:
         qgs_geom_target = QgsGeometry(QgsLineString(qgs_pnt0, qgs_pnt1))
         qgs_mid_point = QgsGeometryUtils.midpoint(qgs_pnt0, qgs_pnt1)
         qgs_rectangle = qgs_mid_point.boundingBox()
-        qgs_rectangle.grow(ReduceBend.ZERO_RELATIVE*100)
+        qgs_rectangle.grow(Epsilon.ZERO_RELATIVE*100)
         feat_ids = self._spatial_index.intersects(qgs_rectangle)
         deleted = True
         for feat_id in feat_ids:
             qgs_geom_line = self._spatial_index.geometry(feat_id)  # Extract geometry
             #  Check if it's the target geometry
-            if qgs_geom_target.hausdorffDistance(qgs_geom_line) <= ReduceBend.ZERO_RELATIVE:
+            if qgs_geom_target.hausdorffDistance(qgs_geom_line) <= Epsilon.ZERO_RELATIVE:
                 feature = QgsFeature(id=feat_id)
                 feature.setGeometry(qgs_geom_target)
                 if self._spatial_index.deleteFeature(feature):  # Delete the line segment
@@ -725,9 +725,9 @@ class RbGeom:
         if self.original_geom_type == QgsWkbTypes.Point:
             self.is_simplest = True  # A point cannot be simplified
         elif self.original_geom_type == QgsWkbTypes.LineString:
-            if qgs_geometry.length() >= ReduceBend.ZERO_RELATIVE:
+            if qgs_geometry.length() >= Epsilon.ZERO_RELATIVE:
                 if qgs_geometry.isClosed():  # Closed LineString
-                    if abs(qgs_geometry.sumUpArea()) > ReduceBend.ZERO_RELATIVE:
+                    if abs(qgs_geometry.sumUpArea()) > Epsilon.ZERO_RELATIVE:
                         self.need_pivot = True
                     else:
                         self.is_simplest = True  # Zero area polygon (degenerated).  Do not try to simplify
@@ -735,7 +735,7 @@ class RbGeom:
                 self.is_simplest = True  # Zero length line (degenerated). Do not try to simplify
         elif self.original_geom_type == QgsWkbTypes.Polygon:
             qgs_polygon = QgsPolygon(qgs_geometry.clone())  # Create QgsPolygon to calculate area
-            if qgs_polygon.area() > ReduceBend.ZERO_RELATIVE:
+            if qgs_polygon.area() > Epsilon.ZERO_RELATIVE:
                 self.need_pivot = True
             else:
                 self.is_simplest = True  # Zero area polygon. Do not simplify the closed line
@@ -892,7 +892,7 @@ class BendReduced:
         vertex_info = QgsGeometryUtils.closestVertex(qgs_ls, qgs_point)
         vertex_id = vertex_info[1].vertex
         qgs_point_target = self.rb_geom.qgs_geom.vertexAt(vertex_id)
-        if qgs_point_target.distance(qgs_point) < ReduceBend.ZERO_RELATIVE:
+        if qgs_point_target.distance(qgs_point) < Epsilon.ZERO_RELATIVE:
             ind = vertex_id
         else:
             ind = None
@@ -1003,7 +1003,7 @@ class BendReduced:
 
         if self.is_line_smoothable:
             self._calculate_smooth_line()
-            self._resolve_non_valid_polygon(ReduceBend.ZERO_RELATIVE)
+            self._resolve_non_valid_polygon(Epsilon.ZERO_RELATIVE)
 
         return
 
@@ -1037,6 +1037,10 @@ class RbResults:
 
 class Epsilon:
     """Class defining the value of the zero"""
+
+    ZERO_RELATIVE = None
+    ZERO_ABSOLUTE = None
+    ZERO_ANGLE = None
 
     __slots__ = '_zero_relative', '_zero_absolute', '_zero_angle', '_map_range'
 
@@ -1079,19 +1083,15 @@ class Epsilon:
         :rtype: None
         """
 
-        ReduceBend.ZERO_RELATIVE = self._zero_relative
-        ReduceBend.ZERO_ABSOLUTE = self._zero_absolute
-        ReduceBend.ZERO_ANGLE = self._zero_angle
+        Epsilon.ZERO_RELATIVE = self._zero_relative
+        Epsilon.ZERO_ABSOLUTE = self._zero_absolute
+        Epsilon.ZERO_ANGLE = self._zero_angle
 
         return
 
 
 class ReduceBend:
     """Main class for bend reduction"""
-
-    ZERO_ANGLE = None
-    ZERO_RELATIVE = None
-    ZERO_ABSOLUTE = None
 
     @staticmethod
     def normalize_in_vector_layer(in_vector_layer, feedback):
@@ -1634,7 +1634,7 @@ class ReduceBend:
         for rb_geom in rb_geoms:
             if rb_geom.qgs_geom.wkbType() == QgsWkbTypes.LineString:
                 if not rb_geom.is_simplest:
-                    rb_geom.qgs_geom.removeDuplicateNodes(epsilon=ReduceBend.ZERO_RELATIVE)
+                    rb_geom.qgs_geom.removeDuplicateNodes(epsilon=Epsilon.ZERO_RELATIVE)
 
         return rb_geoms
 
@@ -1728,7 +1728,7 @@ class ReduceBend:
         if rb_geom.qgs_geom.constGet().isClosed() and len(angles) >= 1:
             del angles[0]  # Do not process the start/end vertice (even if co-linear)
         for i, angle in enumerate(angles):
-            if abs(angle - math.pi) <= ReduceBend.ZERO_ANGLE or abs(angle) <= ReduceBend.ZERO_ANGLE:
+            if abs(angle - math.pi) <= Epsilon.ZERO_ANGLE or abs(angle) <= Epsilon.ZERO_ANGLE:
                 # Co-linear point or flat angle delete the current point
                 vertex_ids_to_del.append(i+1)
 
@@ -1745,10 +1745,10 @@ class ReduceBend:
                                         rb_geom.qgs_geom.vertexAt(1)])
                 angles = ReduceBend.get_angles(qgs_ls)
                 angle = angles[0]
-                if abs(angle - math.pi) <= ReduceBend.ZERO_ANGLE or abs(angle) <= ReduceBend.ZERO_ANGLE:
+                if abs(angle - math.pi) <= Epsilon.ZERO_ANGLE or abs(angle) <= Epsilon.ZERO_ANGLE:
                     self.rb_collection.delete_vertex(rb_geom, 0, 0)
 
-        if rb_geom.qgs_geom.length() <= ReduceBend.ZERO_RELATIVE:
+        if rb_geom.qgs_geom.length() <= Epsilon.ZERO_RELATIVE:
             # Something wrong.  do not try to simplify the LineString
             rb_geom.is_simplest = True
 
@@ -1824,7 +1824,7 @@ class ReduceBend:
 
         # First: check if the bend reduce line string is an OGC simple line
         # We test with a tiny smaller line to ease the testing and false positive error
-        if bend.qgs_geom_new_subline.length() >= ReduceBend.ZERO_RELATIVE:
+        if bend.qgs_geom_new_subline.length() >= Epsilon.ZERO_RELATIVE:
             constraints_valid = ReduceBend.validate_simplicity(qgs_geoms_with_itself, bend.qgs_geom_new_subline)
             if not constraints_valid:
                 # The bend reduction caused self intersection; try to find an alternate bend
