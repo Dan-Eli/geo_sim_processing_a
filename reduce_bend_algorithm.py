@@ -402,7 +402,7 @@ class RbPoint(RbFeature):
     def __init__(self, qgs_feature):
         """Constructor that breaks the Point into a list of Point (RbGeom).
 
-        :param QgsFeature qgs_feature: QgsFeature Point to process.
+        :param: qgs_feature: QgsFeature Point to process.
         """
 
         super().__init__(qgs_feature)
@@ -442,26 +442,6 @@ class RbCollection:
     """
 
     __slots__ = ('_spatial_index', '_dict_qgs_rb_geom', '_dict_qgs_segment', 'rb_results', '_id_qgs_segment')
-
-    @staticmethod
-    def merge_lines(qgs_multi_line_string):
-        """Merge the line segment to form a continuous line.
-
-        In some cases, we can end up with multiple merged line
-
-        :param QgsMultiLineString qgs_multi_line_string: Multi line string to merge together
-        :return: The merged line string
-        :rtype: List of QgsLineString
-        """
-
-        qgs_geom_tmp = QgsGeometry(qgs_multi_line_string.clone())
-        if qgs_geom_tmp.isEmpty():
-            qgs_geoms_ls = []
-        else:
-            qgs_geom_merged = qgs_geom_tmp.mergeLines()
-            qgs_geoms_ls = qgs_geom_merged.coerceToType(QgsWkbTypes.LineString)  # Creates the list of QgsLineString
-
-        return qgs_geoms_ls
 
     def __init__(self, rb_results):
         """Constructor that initialize the RbCollection.
@@ -753,8 +733,7 @@ class RbGeom:
                         self.is_simplest = True  # Zero area polygon (degenerated).  Do not try to simplify
             else:
                 self.is_simplest = True  # Zero length line (degenerated). Do not try to simplify
-        else:
-            # It's a polygon
+        elif self.original_geom_type == QgsWkbTypes.Polygon:
             qgs_polygon = QgsPolygon(qgs_geometry.clone())  # Create QgsPolygon to calculate area
             if qgs_polygon.area() > ReduceBend.ZERO_RELATIVE:
                 self.need_pivot = True
@@ -802,8 +781,6 @@ class Bend:
         if self._qgs_geom_old_subline is None:
             self._qgs_geom_old_subline = QgsGeometry(QgsLineString(self._qgs_points))
         return self._qgs_geom_old_subline
-
-
 
 
 class BendReduced:
@@ -1258,7 +1235,6 @@ class ReduceBend:
         """
 
         min_adj_area = ReduceBend.calculate_min_adj_area(diameter_tol)
-
         if rb_geom.qgs_geom.constGet().isClosed() and len(rb_geom.bends) >= 3:
             # The closed line start/end point lie on a bend that do not need to be reduced
             del rb_geom.bends[0]  # Remove the first bend
@@ -1519,7 +1495,7 @@ class ReduceBend:
             j -= 1
         # Sort the bends from the biggest area to the smallest (bigger area are better candidate)
         alternate_bends.sort(key=lambda item: item[0], reverse=True)
-        # Remove the area from the list
+        # Just keep the Bend from the list
         alternate_bends = [bend for (area, bend) in alternate_bends]
 
         return alternate_bends
