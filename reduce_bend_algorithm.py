@@ -26,6 +26,15 @@
 QGIS Plugin for Bend reduction
 """
 
+import os
+path = os.getcwd()
+print(path)
+try:
+    user_paths = os.environ['PYTHONPATH'].split(os.pathsep)
+except KeyError:
+    user_paths = []
+print (user_paths)
+
 
 import os
 import inspect
@@ -549,8 +558,7 @@ class ReduceBend:
         :rtype: [real]
         """
 
-        qgs_pnts = qgs_line_string.points()
-        xy = [(qgs_pnt.x(), qgs_pnt.y()) for qgs_pnt in qgs_pnts]
+        xy = [(qgs_line_string.xAt(i), qgs_line_string.yAt(i)) for i in range(qgs_line_string.numPoints())]
         if len(xy) >= 3:
             if qgs_line_string.isClosed():
                 # Add two vertice at the start/end for the circularity of a closed line
