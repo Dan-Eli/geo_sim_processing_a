@@ -491,61 +491,6 @@ class RbResults:
         self.is_structure_valid = None
 
 
-class Epsilon1:
-    """Class defining the value of the zero"""
-
-    ZERO_RELATIVE = None
-    ZERO_ABSOLUTE = None
-    ZERO_ANGLE = None
-
-    __slots__ = '_zero_relative', '_zero_absolute', '_zero_angle', '_map_range'
-
-    def __init__(self, features):
-        """Constructor that initialize the Epsilon (near zero) object.
-
-        The dynamic (range) of the feature can vary a lot. We calculate the dynamic of the bounding box of all
-        the features and we use it to estimate an epsilon (zero).  when the range of the bounding box is very small
-        the epsilon can be very small and the opposite when the bigger the bounding box is.
-
-        :param: [QgsFeatures] features: List of QgsFeature to process.
-        :return: None
-        :rtype: None
-        """
-
-        if len(features) >= 1:
-            b_box = features[0].geometry().boundingBox()  # Initialize the bounding box
-        else:
-            b_box = QgsRectangle(0, 0, 1, 1)  # Manage empty list of feature
-
-        for feature in features:
-            b_box.combineExtentWith(feature.geometry().boundingBox())  # Update the bbox
-
-        delta_x = abs(b_box.xMinimum()) + abs(b_box.xMaximum())
-        delta_y = abs(b_box.yMinimum()) + abs(b_box.yMaximum())
-        dynamic_xy = max(delta_x, delta_y)  # Dynamic of the bounding box
-        log_loss = int(math.log(dynamic_xy, 10)+1)
-        max_digit = 15  # Number of significative digits for real number
-        security = 2  # Keep 2 order of magnitude of security
-        abs_digit = max_digit - security
-        rel_digit = max_digit - log_loss - security
-        self._zero_relative = (1. / (10**rel_digit))
-        self._zero_absolute = (1. / (10**abs_digit))
-        self._zero_angle = math.radians(.0001)  # Angle used to decide a flat angle
-
-    def set_class_variables(self):
-        """Set the different epsilon values.
-
-        :return: None
-        :rtype: None
-        """
-
-        Epsilon.ZERO_RELATIVE = self._zero_relative
-        Epsilon.ZERO_ABSOLUTE = self._zero_absolute
-        Epsilon.ZERO_ANGLE = self._zero_angle
-
-        return
-
-
 class ReduceBend:
     """Main class for bend reduction"""
 

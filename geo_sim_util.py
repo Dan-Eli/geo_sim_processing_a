@@ -530,7 +530,7 @@ class GsPoint(GsFeature):
 class RbGeom:
     """Class defining the line string used for the bend reduction"""
 
-    __slots__ = ('id', 'original_geom_type', 'is_simplest', 'qgs_geom', 'qgs_rectangle', 'bends', 'need_pivot')
+    __slots__ = ('id', 'original_geom_type', 'is_simplest', 'qgs_geom', 'bends', 'need_pivot')
 
     _id_counter = 0  # Unique ID counter
 
@@ -580,6 +580,59 @@ class RbGeom:
                 self.need_pivot = True
             else:
                 self.is_simplest = True  # Zero area polygon. Do not simplify the closed line
+
+class SimGeom:
+    """Class defining the line string used for the douglas peucker simplification"""
+
+    __slots__ = ('id', 'original_geom_type', 'is_simplest', 'qgs_geom', 'furthest_index')
+
+    _id_counter = 0  # Unique ID counter
+
+    @staticmethod
+    def next_id():
+        """Get the next counterID.
+
+        :param: QgsMultiLineString qgs_multi_line_string: Multi line string to merge together
+        :return: ID of the SimGeom object
+        :rtype: int
+        """
+
+        SimGeom._id_counter += 1
+
+        return SimGeom._id_counter
+
+    def __init__(self, qgs_abs_geom, original_geom_type):
+        """Constructor that initialize a SimGeom object.
+
+        :param: qgs_abs_geom: QgsAbstractGeometry to process
+        :param: original_geom_type: Original type of the geometry
+
+        """
+
+        self.id = SimGeom.next_id()
+        self.original_geom_type = original_geom_type
+        qgs_geometry = qgs_abs_geom.constGet()
+        self.qgs_geom = QgsGeometry(qgs_geometry.clone())
+        self.is_simplest = False
+        self.furthest_index = None
+        # Set some variable depending on the attribute of the feature
+        if self.original_geom_type == QgsWkbTypes.Point:
+            self.is_simplest = True  # A point cannot be simplified
+        else:
+            # Original geometry is LineString or Polygon
+            if qgs_geometry.length() >= Epsilon.ZERO_RELATIVE:
+                if qgs_geometry.isClosed():  # Closed LineString
+                    qgs_polygon = QgsPolygon(qgs_geometry.clone())  # Create QgsPolygon to calculate area
+                    if qgs_polygon.area() > Epsilon.ZERO_RELATIVE:
+                        if qgs_geometry.numPoints() <= 4:
+                            self.is_simplest = True  # Cannot simplify a closed line with less than 4 vertices
+                    else:
+                        self.is_simplest = True  # Degenerated area cannot simplify
+                else:
+                    if qgs_geometry.numPoints() <= 2:
+                        self.is_simplest = True  # Cannot simplify a line with less than 2 vertice
+            else:
+                self.is_simplest = True  # Degenerated area cannot simplify
 
 
 class Bend:
